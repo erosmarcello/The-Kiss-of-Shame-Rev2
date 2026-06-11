@@ -1,0 +1,132 @@
+name: Release
+
+# Builds distributable packages and attaches them to a GitHub Release.
+# Triggered by pushing a v* tag, or manually (Run workflow) with the tag name.
+#
+# macOS produces a universal (arm64 + x86_64) AU + VST3 + Standalone bundle,
+# ad-hoc signed so it loads locally for testing in Logic. For public
+# distribution, replace the ad-hoc identity with a Developer ID certificate
+# and notarize.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v2.0.0-beta.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: macOS (AU + VST3, universal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (universal binary)
+        run: >
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Smoke tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Ad-hoc sign
+        run: |
+          codesign --force --deep -s - "build/KissOfShame_artefacts/Release/AU/The Kiss Of Shame.component"
+          codesign --force --deep -s - "build/KissOfShame_artefacts/Release/VST3/The Kiss Of Shame.vst3"
+          codesign --force --deep -s - "build/KissOfShame_artefacts/Release/Standalone/The Kiss Of Shame.app"
+
+      - name: Package
+        run: |
+          cd build/KissOfShame_artefacts/Release
+          zip -ry "$GITHUB_WORKSPACE/TheKissOfShame-macOS.zip" AU VST3 Standalone
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheKissOfShame-macOS
+          path: TheKissOfShame-macOS.zip
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          prerelease: true
+          files: TheKissOfShame-macOS.zip
+          body: |
+            **The Kiss of Shame — Rev 2 test build.**
+
+            ### Install for Logic Pro (macOS)
+            1. Download and unzip `TheKissOfShame-macOS.zip`.
+            2. Copy `AU/The Kiss Of Shame.component` to `~/Library/Audio/Plug-Ins/Components/`.
+            3. Clear the quarantine flag (test builds are ad-hoc signed, not notarized):
+               ```sh
+               xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/Components/The Kiss Of Shame.component"
+               ```
+            4. Restart Logic (or run `auval -a` to rescan). It appears under **Infernal Love → The Kiss Of Shame**.
+
+            VST3 (`~/Library/Audio/Plug-Ins/VST3/`) and the Standalone app are included as well.
+            Windows/Linux VST3 zips are attached when their jobs complete.
+
+            Highlights: era switch (heritage 2014 / modern), Shame EXTREME via
+            double-click, all storage environments live, environment picker,
+            full automation. Heritage era is the default.
+
+  windows:
+    name: Windows (VST3)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path "build/KissOfShame_artefacts/Release/VST3/The Kiss Of Shame.vst3" -DestinationPath TheKissOfShame-Windows-VST3.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheKissOfShame-Windows
+          path: TheKissOfShame-Windows-VST3.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          prerelease: true
+          files: TheKissOfShame-Windows-VST3.zip
+
+  linux:
+    name: Linux (VST3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxext-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev libxcomposite-dev \
+            libfreetype-dev libfontconfig1-dev ninja-build
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Package
+        run: |
+          cd build/KissOfShame_artefacts/Release
+          zip -ry "$GITHUB_WORKSPACE/TheKissOfShame-Linux-VST3.zip" VST3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheKissOfShame-Linux
+          path: TheKissOfShame-Linux-VST3.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          prerelease: true
+          files: TheKissOfShame-Linux-VST3.zip

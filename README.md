@@ -6,11 +6,15 @@ To differentiate itself in the competitive pro-audio plugin market, The Kiss of 
 
 The Kiss of Shame was never released. The source code was graciously donated to the open source community by its owner in 2024.
 
-> **NOTE:** This repo is currently work-in-progress. The plug-in does not work yet!
+> **Rev 2 is in active development.** The plug-in now builds and passes audio
+> with JUCE 8 (CMake), with all parameters functional — including the storage
+> environments, tape types and print-through that were unfinished in the
+> original source drop. See [docs/REV2_PLAN.md](docs/REV2_PLAN.md) for the
+> full deluxe-overhaul roadmap.
 
 ## Installation instructions
 
-TODO
+Build from source (below) — installers arrive with the v2.0.0 release.
 
 ## How to use this plug-in
 
@@ -36,9 +40,46 @@ TODO
 
 The Kiss of Shame is the first tape plug-in to feature animated, interactive reels that can be manipulated with a simple click or touch. This allows users to access authentic analogue tape flange in real-time, without the need for two physical tape decks, and in a fraction of the time. All parameters, including reel movements, are fully automatable, and for screen real estate optimization, the reels are collapsible and fully customizable.
 
+## Secret handshake: Shame EXTREME
+
+Double-click the Shame knob. Like an LA-2A with all of its buttons pressed in
+at once, Extreme mode drives the wow/flutter/drift engine past its design
+stops and engages scrape-flutter no front-panel setting can reach. The
+backlight runs hot while you're in it; double-click again to come back.
+Extreme is saved with your session but deliberately adds no parameter — the
+control surface stays exactly seven controls.
+
+## Plug-in formats & cross-DAW compatibility
+
+| Format | Status |
+| --- | --- |
+| **AU** (Logic, GarageBand) | Built on macOS out of the box |
+| **VST3** (Cubase, Live, Reaper, Studio One, FL, Bitwig…) | Built on macOS / Windows / Linux out of the box |
+| **AAX** (Pro Tools) | Build target ready — configure with `-DKOS_AAX_SDK_PATH=/path/to/aax-sdk`. Requires Avid's AAX SDK (NDA) and PACE signing to load in release Pro Tools |
+| VST2 | Not possible: Steinberg closed VST2 licensing in 2018; VST3 is its successor |
+
+Every CI run gates the VST3 through [pluginval](https://github.com/Tracktion/pluginval)
+at strictness level 5 on Linux, macOS and Windows — the systematic answer to
+per-host anomalies (the kind we used to chase in Cubase). The smoke tests also
+pixel-diff the Shame knob to guarantee the cross animation never silently
+stops again.
+
 ## Building from source code
 
-The code is written for JUCE 3.1 and does not currently compile with JUCE 7. I'm working on it, stay tuned! :construction_worker:
+Rev 2 uses CMake and fetches JUCE 8 automatically:
+
+```sh
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+```
+
+Artifacts land in `build/KissOfShame_artefacts/Release/` (VST3 and Standalone
+everywhere; AU additionally on macOS). On Linux, install the usual JUCE
+dependencies first
+(`libasound2-dev libx11-dev libxext-dev libxrandr-dev libxinerama-dev
+libxcursor-dev libxcomposite-dev libfreetype-dev libfontconfig1-dev`).
+
+Run the offline audio smoke tests with `ctest --test-dir build -C Release`.
 
 ## Credits & license
 

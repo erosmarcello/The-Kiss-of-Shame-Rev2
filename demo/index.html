@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Kiss of Shame — Rev 2 Demo</title>
+<meta name="description" content="The Kiss of Shame analog tape emulation — the original 2014 interface, processing audio live in your browser: wow, flutter, hiss, storage environments and Shame EXTREME.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+  <div class="stage-holder">
+    <div class="stage" id="stage">
+      <!-- the pink backlight glows through the faceplate's alpha -->
+      <div class="backlight" id="backlight"></div>
+
+      <!-- the original faceplate -->
+      <div class="face" id="face"></div>
+
+      <!-- interactive reels: drag to lean on the tape -->
+      <canvas class="reels" id="reels" width="960" height="322"
+              title="Drag the reels to lean on the tape — real-time flange"></canvas>
+
+      <!-- EXTREME heat over the cross -->
+      <div class="extreme-glow" id="extremeGlow"></div>
+
+      <!-- filmstrip controls (all original assets, positions.rtf layout) -->
+      <div class="strip knob" id="k-input"  data-param="input"  data-default="0.5" title="Input trim / drive"></div>
+      <div class="strip knob" id="k-age"    data-param="age"    data-default="0"   title="Age — time spent in the chosen environment"></div>
+      <div class="strip"      id="shameRing"></div>
+      <div class="strip knob" id="k-shame"  data-param="shame"  data-default="0"   title="Shame — wow, flutter, drift, scrape. Double-click for EXTREME"></div>
+      <div class="strip knob" id="k-hiss"   data-param="hiss"   data-default="0"   title="Hiss"></div>
+      <div class="strip knob" id="k-blend"  data-param="blend"  data-default="1"   title="Blend — dry/wet"></div>
+      <div class="strip knob" id="k-output" data-param="output" data-default="0.5" title="Output trim"></div>
+
+      <div class="strip" id="vuL"></div>
+      <div class="strip" id="vuR"></div>
+
+      <div class="strip click" id="env"    title="Storage environment — click to cycle, scroll to step"></div>
+      <div class="strip click" id="lamp"   title="Bypass"></div>
+      <div class="strip click" id="lever"  title="Bypass lever"></div>
+      <div class="strip click" id="tape"   title="Tape formulation: S-111 / A-456"></div>
+      <div class="strip click" id="print"  title="Print Through"></div>
+      <div class="strip click linkbtn" id="linkL" title="Link input/output"></div>
+      <div class="strip click linkbtn" id="linkR" title="Link input/output"></div>
+    </div>
+  </div>
+
+  <footer class="transport">
+    <select id="source">
+      <option value="audio/dust_and_keys.wav">Dust &amp; Keys — lo-fi groove</option>
+      <option value="audio/night_drive.wav">Night Drive — synthwave</option>
+      <option value="audio/drum_bus.wav">Drum Bus — drums only</option>
+      <option value="upload">Your own audio…</option>
+    </select>
+    <input type="file" id="fileInput" accept="audio/*" hidden>
+    <button class="play" id="playBtn">▶ ROLL TAPE</button>
+    <a class="gh" href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener">GitHub ↗</a>
+  </footer>
+
+  <p class="footnote">The original 2014 interface, live in your browser — every graphic is the real faceplate asset.
+     AudioWorklet port of the Rev 2 signal path. Double-click the cross for <b>EXTREME</b>;
+     double-click the faceplate to fold the reels away. © Infernal Love.</p>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

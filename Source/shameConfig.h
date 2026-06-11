@@ -3,68 +3,22 @@
 //  KissOfShame
 //
 //  Created by Brian Hansen on 9/11/14.
+//  Rev 2: stripped of hard-coded paths and sample-rate assumptions.
+//  All DSP modules now learn the sample rate in prepare(); all resources
+//  are embedded as BinaryData.
 //
-//
 
-#ifndef KissOfShame_shameConfig_h
-#define KissOfShame_shameConfig_h
+#pragma once
 
-#include <iostream>
-#include <math.h>
-
-#include "../JuceLibraryCode/JuceHeader.h"
-
-
-#define BUFFER_SIZE (44100)
-#define PI 3.14159265359
-#define SAMPLE_RATE 44100
-
-
-//#define GUI_PATH String("/Users/brianhansen/Documents/Brian/Work/1_KOS/kissofshame/GUI_Resources/")
-//#define AUDIO_PATH String("/Users/brianhansen/Documents/Brian/Work/1_KOS/kissofshame/Audio_Resources/")
-
-#define GUI_PATH String("/Users/Shared/KissOfShame/GUI_Resources/")
-#define AUDIO_PATH String("/Users/Shared/KissOfShame/Audio_Resources/")
-
+#include <JuceHeader.h>
 
 enum EShameEnvironments
 {
     eEnvironmentOff,
-    eEnvironmentEnvironment,
     eEnvironmentStudioCloset,
     eEnvironmentHumidCellar,
     eEnvironmentHotLocker,
     eEnvironmentHurricaneSandy,
-    
+
     eEnvironmentTotalEnvironments
 };
-
-
-enum AUParameter
-{
-    eSaturationDrive,
-    eSaturationOuput,
-    eSaturationRate,
-    eSaturationThresh,
-    eSaturationGlobalLevel,
-    
-    eShameGlobalLevel,
-    eShameFreq,
-    eShameDepth,
-    
-    eHurricaneSandyGlobalLevel,
-    
-    eHissLevel,
-    
-    eBlendLevel,
-    
-    eFlangeDepth,
-    
-    eBypass,
-    eInputDrive,
-    eOutputLevel
-};
-
-
-
-#endif

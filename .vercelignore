@@ -1,0 +1,6 @@
+# Only the web demo deploys to Vercel; the plugin sources and the heavy
+# binary resources stay home.
+*
+!demo
+!demo/**
+!vercel.json

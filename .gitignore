@@ -3,3 +3,7 @@
 xcuserdata/
 *.xccheckout
 
+
+# CMake
+build/
+cmake-build-*/

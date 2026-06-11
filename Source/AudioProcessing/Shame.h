@@ -3,228 +3,183 @@
 //  KissOfShame
 //
 //  Created by Brian Hansen on 9/9/14.
+//  Rev 2: sample-rate aware, cleared buffers, single wavetable, and the
+//  Extreme mode — the "all-buttons-in" of the Shame knob.
 //
+//  Wow/flutter/drift via a modulated playback position over a circular
+//  buffer. The knob's three-segment macro mapping is the original 2014
+//  curve. Extreme mode (entered by double-clicking the knob, stored as a
+//  state property rather than a parameter) drives the same mapping past
+//  its design limits and engages a scrape-flutter component.
 //
 
-#ifndef __KissOfShame__Shame__
-#define __KissOfShame__Shame__
+#pragma once
 
 #include "../shameConfig.h"
-
 
 class Shame
 {
 public:
-    
-    Shame(int numChannels) //NOTE: number of channels should be in the constructor input.
-    {
-        rate = 2.0;
-        depth = 0.5;
-        //oscIncr = 0.0;
-        
-        playPosition = 0.0;
-        curPos = 0;
-        
-        shameGlobalLevel = 0.0;
-        
-        shameSampleBuffer = new AudioSampleBuffer(numChannels, BUFFER_SIZE);
-        
-        
-        ////////////////initialization for wavetable
-        curPos_wTable = 0;
-        waveformIndx = 0;
-        randPeriodicity = 0.0;
-        curDirection = 1.0;
-        rateFluctuation = 0.0;
-        
-        rNum.setSeedRandomly();
+    Shame() = default;
 
-        importWaveTables();
-    }
-    
-    ~Shame(){}
-    
-    void setInterpolatedParameters(float input)
+    void prepare(double newSampleRate, int numChannels)
     {
-        if(input < 0.0) input = 0.0;
-        if(input > 1.0) input = 1.0;
-        
-        if(input <= 0.5)
+        sampleRate = newSampleRate;
+        srScale = (float) (sampleRate / 44100.0);
+
+        bufferLength = jmax(1024, (int) std::lround(sampleRate)); // one second of tape
+        shameSampleBuffer.setSize(jmax(1, numChannels), bufferLength);
+        buildWavetable();
+        reset();
+    }
+
+    void reset()
+    {
+        shameSampleBuffer.clear();
+        playPosition = 0.0f;
+        curPos = 0;
+        tablePhase = 0.0f;
+        rateFluctuation = 0.0f;
+        scrapePhase = 0.0f;
+    }
+
+    // The original interpolated macro mapping, with an Extreme overlay.
+    void setShame(float input, bool extreme)
+    {
+        input = jlimit(0.0f, 1.0f, input);
+        amount = input;
+        extremeActive = extreme;
+
+        if (input <= 0.5f)
         {
-            depth = 5 * input / 0.5;
-            randPeriodicity = 0.5 ;
-            rate = 7.0;
-            waveformIndx = 0;
+            depth = 5.0f * input / 0.5f;
+            randPeriodicity = 0.5f;
+            rate = 7.0f;
         }
-        else if(input > 0.5 && input <= 0.85)
+        else if (input <= 0.85f)
         {
-            depth = 5 + 25*(input - 0.5)/(0.85 - 0.5);
-            randPeriodicity = 0.5 - 0.25*(input - 0.5)/(0.85 - 0.5);
-            rate = 7.0 + 70.0*(input - 0.5)/(0.85 - 0.5);
-            waveformIndx = 0;
+            depth = 5.0f + 25.0f * (input - 0.5f) / 0.35f;
+            randPeriodicity = 0.5f - 0.25f * (input - 0.5f) / 0.35f;
+            rate = 7.0f + 70.0f * (input - 0.5f) / 0.35f;
         }
-        else if(input > 0.85 && input <= 1.0)
+        else
         {
-            depth = 30 + 30*(input - 0.85)/0.15;
-            randPeriodicity = 0.25 + 0.5*(input - 0.85)/0.15;
-            rate = 77.0 - 20.0*(input - 0.85)/0.15;
-            waveformIndx = 0;
+            depth = 30.0f + 30.0f * (input - 0.85f) / 0.15f;
+            randPeriodicity = 0.25f + 0.5f * (input - 0.85f) / 0.15f;
+            rate = 77.0f - 20.0f * (input - 0.85f) / 0.15f;
+        }
+
+        if (extremeActive)
+        {
+            // Past the stops: deeper excursions, faster and less periodic
+            // modulation, plus scrape-flutter that no front-panel setting
+            // could reach.
+            depth *= 2.5f;
+            rate = jmin(rate * 1.6f, 120.0f);
+            randPeriodicity = jmin(1.0f, randPeriodicity * 1.5f + 0.15f);
+            scrapeDepth = 4.0f * input * srScale;
+            scrapeRateHz = 38.0f + 30.0f * input;
+        }
+        else
+        {
+            scrapeDepth = 0.0f;
         }
     }
-    
-    
-    void importWaveTables()
+
+    void process(AudioSampleBuffer& sampleBuffer, int numChannels)
     {
-        
-        for(int i = 0; i < 4; i++)
+        numChannels = jmin(numChannels, shameSampleBuffer.getNumChannels());
+        const float depthSamples = depth * srScale;
+
+        for (int i = 0; i < sampleBuffer.getNumSamples(); ++i)
         {
-            AudioSampleBuffer *tempAudioBuffer = new AudioSampleBuffer(1, (int) BUFFER_SIZE);
-            
-            for(int j = 0; j < tempAudioBuffer->getNumSamples(); j++)
+            for (int channel = 0; channel < numChannels; ++channel)
+                shameSampleBuffer.getWritePointer(channel)[curPos] = sampleBuffer.getReadPointer(channel)[i];
+
+            const float frac = playPosition - (float) (int) playPosition;
+            const int prX = (int) playPosition;
+            const int nxtX = (prX + 1) % bufferLength;
+
+            for (int channel = 0; channel < numChannels; ++channel)
             {
-                float cosDomain = 2.0*PI*(double)j/((double)BUFFER_SIZE-1);
-                tempAudioBuffer->getWritePointer(0)[j] = (0.5*(cos(cosDomain) - 1));
+                const float* tape = shameSampleBuffer.getReadPointer(channel);
+                sampleBuffer.getWritePointer(channel)[i] = tape[prX] * (1.0f - frac) + tape[nxtX] * frac;
             }
-            
-            waveTableBuffers.add(tempAudioBuffer);
+
+            playPosition = (float) curPos + depthSamples * processWavetable();
+
+            if (extremeActive && scrapeDepth > 0.0f)
+            {
+                playPosition += scrapeDepth * std::sin(scrapePhase);
+                scrapePhase += (float) (MathConstants<double>::twoPi * scrapeRateHz / sampleRate);
+                if (scrapePhase > MathConstants<float>::twoPi)
+                    scrapePhase -= MathConstants<float>::twoPi;
+            }
+
+            while (playPosition >= (float) bufferLength) playPosition -= (float) bufferLength;
+            while (playPosition < 0.0f)                  playPosition += (float) bufferLength;
+
+            curPos = (curPos + 1) % bufferLength;
         }
     }
-    
-    
-    float linearInterpolate(float prSamp, float nxtSamp, float fraction)
+
+private:
+    void buildWavetable()
     {
-        return prSamp*(1-fraction) + nxtSamp*fraction;
+        for (int j = 0; j < tableSize; ++j)
+        {
+            const double phase = MathConstants<double>::twoPi * (double) j / (double) (tableSize - 1);
+            wavetable[(size_t) j] = (float) (0.5 * (std::cos(phase) - 1.0));
+        }
     }
-    
-    
+
     float processWavetable()
     {
-        //indexing logic for the wavetables
-        int prWaveIndx = 0;
-        int nxtWaveIndx = 0;
-        
-        if(waveformIndx < 0)
+        const float fracPos = tablePhase - (float) (int) tablePhase;
+        const int prPos = (int) tablePhase;
+        const int nxtPos = (prPos + 1) % tableSize;
+
+        const float outsample = wavetable[(size_t) prPos] * (1.0f - fracPos) + wavetable[(size_t) nxtPos] * fracPos;
+
+        // rate is in Hz: full table traversal per 1/rate seconds.
+        tablePhase += (rate + rateFluctuation) * (float) tableSize / (float) sampleRate;
+
+        if (tablePhase >= (float) tableSize)
         {
-            prWaveIndx = 0;
-            nxtWaveIndx = 0;
-            waveformIndx = 0;
+            // Each cycle picks a new random rate deviation, scaled by the
+            // periodicity — the stochastic heart of the wow/flutter.
+            rateFluctuation = (random.nextFloat() * 2.0f - 1.0f) * rate * randPeriodicity;
+            tablePhase -= (float) tableSize;
         }
-        else if(waveformIndx >= 0 && waveformIndx < 1)
-        {
-            prWaveIndx = 0;
-            nxtWaveIndx = 1;
-        }
-        else if(waveformIndx >= 1 && waveformIndx < 2)
-        {
-            prWaveIndx = 1;
-            nxtWaveIndx = 2;
-        }
-        else if(waveformIndx >= 2 && waveformIndx < 3)
-        {
-            prWaveIndx = 2;
-            nxtWaveIndx = 3;
-        }
-        else if(waveformIndx >= 3)
-        {
-            prWaveIndx = 3;
-            nxtWaveIndx = 3;
-            waveformIndx = 3;
-        }
-        float fracWaveIndx = waveformIndx - (int)waveformIndx;
-        
-        
-        //interpolation indices for the samples in each wavetable
-        float fracPos = curPos_wTable - (int)curPos_wTable;
-        int prPos = (int)curPos_wTable;
-        int nxtPos = (prPos + 1) % BUFFER_SIZE;
-        
-        float w1Sample = waveTableBuffers[prWaveIndx]->getReadPointer(0)[prPos]*(1-fracPos) + waveTableBuffers[prWaveIndx]->getReadPointer(0)[nxtPos]*fracPos;
-        float w2Sample = waveTableBuffers[nxtWaveIndx]->getReadPointer(0)[prPos]*(1-fracPos) + waveTableBuffers[nxtWaveIndx]->getReadPointer(0)[nxtPos]*fracPos;
-        
-        float outsample = w1Sample*(1-fracWaveIndx) + w2Sample*fracWaveIndx;
-        
-        
-        //increment the current position.
-        curPos_wTable = curPos_wTable + rate + rateFluctuation;
-        
-        if(curPos_wTable >= BUFFER_SIZE)
-        {
-            rateFluctuation = ((float)(rand() % 2000)/1000 - 1.0)*rate*randPeriodicity;
-            curPos_wTable -= BUFFER_SIZE;
-        }
-        if(curPos_wTable < 0) curPos_wTable += BUFFER_SIZE;
-    
+        if (tablePhase < 0.0f)
+            tablePhase += (float) tableSize;
 
         return outsample;
     }
 
-    
-    void processShame(AudioSampleBuffer& sampleBuffer, int numChannels)
-    {
-        for(int i = 0; i < sampleBuffer.getNumSamples(); i++)
-        {
-            //populate the circular buffer
-            for(int channel = 0; channel < numChannels; ++channel)
-            {
-                float curSample = sampleBuffer.getReadPointer(channel)[i];
-                shameSampleBuffer->getWritePointer(channel)[curPos] = curSample;
-            }
-            
-            float frac = playPosition - (int)playPosition;
-            int prX = (int)playPosition;
-            int nxtX = (prX + 1) % BUFFER_SIZE;
-            
-            //compute the output sample by indexing and interpolating the circular buffer.
-            for(int channel = 0; channel < numChannels; ++channel)
-            {
-                float* outSamples = sampleBuffer.getWritePointer(channel);
-                outSamples[i] = linearInterpolate(shameSampleBuffer->getReadPointer(channel)[prX], shameSampleBuffer->getReadPointer(channel)[nxtX], frac);
-            }
-            
-            playPosition = curPos + depth*processWavetable();
-            
-            
-            if(playPosition >= BUFFER_SIZE) playPosition -= BUFFER_SIZE;
-            if(playPosition < 0) playPosition += (BUFFER_SIZE);
+    double sampleRate = 44100.0;
+    float srScale = 1.0f;
 
-            curPos = (curPos + 1) % BUFFER_SIZE;
-        }
-    };
+    AudioSampleBuffer shameSampleBuffer;
+    int bufferLength = 44100;
 
-    void setRate(float _rate){rate = _rate;}
-    void setDepth(float _depth){depth = _depth;}
-    void setPeriodicity(float periodicity){randPeriodicity = periodicity;}
-    void setWaveformIndex(float indx){waveformIndx = indx;}
-    void setGlobalLevel(float level){shameGlobalLevel = level;}
+    float playPosition = 0.0f;
+    int curPos = 0;
 
-private:
-    
-    ScopedPointer<AudioSampleBuffer> shameSampleBuffer;
-    
-    float shameGlobalLevel;
-    
-    float playPosition;
-    int curPos;
-    
-    //float rate;
-    float depth;
-    //float oscIncr;
-    
-    ///////// controls for the waveform oscillator
-    
-    //used for core indexing of the waveform.
-    OwnedArray<AudioSampleBuffer> waveTableBuffers;
-    float waveformIndx;
-    float curPos_wTable;
-    float rate;
-    
-    //used for randomization of waveform reading.
-    Random rNum;
-    float randPeriodicity;
-    int curDirection;
-    float rateFluctuation;
-    
+    float amount = 0.0f;
+    float depth = 0.0f;
+    float rate = 7.0f;
+    float randPeriodicity = 0.5f;
+    float rateFluctuation = 0.0f;
+
+    bool extremeActive = false;
+    float scrapeDepth = 0.0f;
+    float scrapeRateHz = 38.0f;
+    float scrapePhase = 0.0f;
+
+    static constexpr int tableSize = 8192;
+    std::array<float, tableSize> wavetable {};
+    float tablePhase = 0.0f;
+
+    Random random;
 };
-
-
-#endif /* defined(__KissOfShame__Shame__) */

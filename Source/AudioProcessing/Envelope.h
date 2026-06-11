@@ -1,117 +1,98 @@
-#ifndef ENVELOPE_H
-#define ENVELOPE_H
+#pragma once
 
-
-//#include "Generator.h"
-//#include <stdlib.h>
-//#include "../../JuceLibraryCode/JuceHeader.h"
 #include "../shameConfig.h"
 
-
+// Point-based looping envelope in the millisecond domain.
+// Rev 2: sample-rate aware, and the interpolation no longer reads
+// uninitialized point variables when curPos lands outside the point list.
 class Envelope
 {
 public:
-    
-    Envelope(int domainMS) : incr(0.0), domain(domainMS*44.1), loopDuration(domainMS*44.1)
+    explicit Envelope(int domainMS_)
+        : domainMS((float) domainMS_), loopDurationMS((float) domainMS_)
     {
-        Point<float> pStart(0.0, 0.0);
-        Point<float> pEnd(1.0, 0.0);
-        points.add(pStart);
-        points.add(pEnd);
+        points.add({ 0.0f, 0.0f });
+        points.add({ 1.0f, 0.0f });
+        prepare(44100.0);
     }
-    
-    ~Envelope(){}
-    
-    
+
+    void prepare(double sampleRate)
+    {
+        samplesPerMs = (float) (sampleRate / 1000.0);
+        domain = domainMS * samplesPerMs;
+        loopDuration = loopDurationMS * samplesPerMs;
+        incr = 0.0f;
+    }
+
     void addEvelopePoint(float x, float y)
     {
-        //std::cout << "Dyn Intensity: " << dynamicExtremity << std::endl;
-        
-        Point<float> pt(x, y);
-        points.insert(points.size() - 1, pt);
-        
-        //for(int i = 0; i < points.size(); i++)
-        //{
-        //    std::cout << "X Val: " << points[i].getX() << "Y Val: " << points[i].getY() << std::endl;
-        //}
+        points.insert(points.size() - 1, { x, y });
     }
-    
-    void setDomainMS(float d) //NOTE: domain is set in milleseconds
+
+    void setDomainMS(float d)
     {
-        domain = d * 44.1;
-        
-        if(domain > loopDuration) loopDuration = domain;
+        domainMS = d;
+        domain = domainMS * samplesPerMs;
+        if (domain > loopDuration) loopDuration = domain;
     }
-    
+
     void setLoopDurationMS(float dur)
     {
-        loopDuration = dur * 44.1;
-        
-        if(loopDuration < domain) domain = loopDuration;
+        loopDurationMS = dur;
+        loopDuration = loopDurationMS * samplesPerMs;
+        if (loopDuration < domain) domain = loopDuration;
     }
-    
+
     float processEnvelope()
     {
-        float interpolatedValue = 0.0;
-        
-        if(incr < domain)
+        float interpolatedValue = 0.0f;
+
+        if (incr < domain && domain > 0.0f)
         {
-        
-            float curPos = incr/domain;
-            
-            //find the two points the curPos is between.
-            float priorX, nxtX;
-            float priorY, nxtY;
-            for(int i = points.size() - 1; i >= 0; i--)
+            const float curPos = jlimit(0.0f, 1.0f, incr / domain);
+
+            float priorX = points[0].getX(), priorY = points[0].getY();
+            float nxtX = points[points.size() - 1].getX(), nxtY = points[points.size() - 1].getY();
+
+            for (int i = points.size() - 1; i >= 0; --i)
             {
-                if(curPos >= points[i].getX())
+                if (curPos >= points[i].getX())
                 {
                     priorX = points[i].getX();
                     priorY = points[i].getY();
-                    nxtX = points[i+1].getX();
-                    nxtY = points[i+1].getY();
+                    if (i + 1 < points.size())
+                    {
+                        nxtX = points[i + 1].getX();
+                        nxtY = points[i + 1].getY();
+                    }
+                    else
+                    {
+                        nxtX = priorX;
+                        nxtY = priorY;
+                    }
                     break;
                 }
             }
-            
-            //Calculate the distance from the prior point relative to the next point.
-            float distFromPrior = (curPos - priorX)/(nxtX - priorX);
-            
-            //The output value is the weighted average between the two points.
-            interpolatedValue = (1- distFromPrior)*priorY + (distFromPrior)*nxtY;
-        }
-        else
-        {
-            interpolatedValue = 0.0;
-        }
-        
-        
-        //std::cout << "CurPos: " << curPos << ", prY: " << priorY << ", NxtY: "<< nxtY << ", Value: " << interpolatedValue << std::endl;
 
-        
-        //increment through domain.
-        incr++;
-        if(incr >= loopDuration)
-        {
-            incr = 0;
+            const float span = nxtX - priorX;
+            const float distFromPrior = span > 0.0f ? (curPos - priorX) / span : 0.0f;
+            interpolatedValue = (1.0f - distFromPrior) * priorY + distFromPrior * nxtY;
         }
-        
+
+        incr++;
+        if (incr >= loopDuration)
+            incr = 0;
+
         return interpolatedValue;
     }
-    
-    
-    
+
 private:
-    
-    float incr;
-    float domain;
-    float loopDuration;
-    
+    float samplesPerMs = 44.1f;
+    float domainMS, loopDurationMS;
+
+    float incr = 0.0f;
+    float domain = 0.0f;
+    float loopDuration = 0.0f;
+
     Array<Point<float>> points;
-    
 };
-
-
-
-
-#endif

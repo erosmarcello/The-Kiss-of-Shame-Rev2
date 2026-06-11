@@ -3,45 +3,32 @@
 //  KissOfShame
 //
 //  Created by Brian Hansen on 9/14/14.
-//
+//  Rev 2: unchanged math, channel-safe.
 //
 
-#ifndef __KissOfShame__Blend__
-#define __KissOfShame__Blend__
-
+#pragma once
 
 #include "../shameConfig.h"
 
 class Blend
 {
 public:
-    Blend()
+    void processBlend(AudioSampleBuffer& dryBuffer, const AudioSampleBuffer& wetBuffer, int numChannels)
     {
-        blendValue = 0.0;
-    }
-    
-    void processBlend(AudioSampleBuffer &buffer1, AudioSampleBuffer &buffer2, int numChannels)
-    {
-        
+        numChannels = jmin(numChannels, jmin(dryBuffer.getNumChannels(), wetBuffer.getNumChannels()));
+
         for (int channel = 0; channel < numChannels; ++channel)
         {
-            float* samples = buffer1.getWritePointer(channel);
-            
-            for(int i = 0; i < buffer1.getNumSamples(); i++)
-            {
-                samples[i] = (1-blendValue)*buffer1.getReadPointer(channel)[i] + blendValue*buffer2.getReadPointer(channel)[i];
-            }
+            float* samples = dryBuffer.getWritePointer(channel);
+            const float* wet = wetBuffer.getReadPointer(channel);
+
+            for (int i = 0; i < dryBuffer.getNumSamples(); ++i)
+                samples[i] = (1.0f - blendValue) * samples[i] + blendValue * wet[i];
         }
     }
-    
-    void setBlendLevel(float level) {blendValue = level;}
-    
+
+    void setBlendLevel(float level) { blendValue = jlimit(0.0f, 1.0f, level); }
+
 private:
-    
-    float blendValue;
-    
+    float blendValue = 0.0f;
 };
-
-
-
-#endif /* defined(__KissOfShame__Blend__) */

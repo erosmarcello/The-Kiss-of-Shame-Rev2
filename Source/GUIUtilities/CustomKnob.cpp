@@ -1,41 +1,23 @@
 #include "CustomKnob.h"
 
-
-
 CustomKnob::CustomKnob()
-:
-knobNumFrames(128)
 {
     setSliderStyle(Rotary);
     setTextBoxStyle(NoTextBox, true, 0, 0);
     setRange(0.000, 1.000, 0.001);
     setValue(0.0);
-    
-    
-    knobImagePath = "/Users/brianhansen/Documents/Brian/Work/1_KOS/kissofshame/GUI_Resources/MixKnob/Knob-Pan-Mix.png";
-    
-    File imgFile;
-    imgFile = File(knobImagePath);
-    knobImage = ImageCache::getFromFile(imgFile);
-    knobFrameWidth = knobImage.getWidth();
-    knobFrameHeight = knobImage.getHeight()/knobNumFrames;
-    setSize(knobFrameWidth, knobFrameHeight);    
 }
-
-CustomKnob::~CustomKnob()
-{}
 
 void CustomKnob::setNumFrames(int numFrames)
 {
-    knobNumFrames = numFrames;
-    setValue(0.0);
+    knobNumFrames = jmax(1, numFrames);
 }
 
-void CustomKnob::setKnobImage(String filePath)
+void CustomKnob::setKnobImage(const Image& image)
 {
-    knobImage = ImageCache::getFromFile(File(filePath));
+    knobImage = image;
+    repaint();
 }
-
 
 void CustomKnob::setKnobDimensions(int topLeftX, int topLeftY, int w, int h)
 {
@@ -45,17 +27,50 @@ void CustomKnob::setKnobDimensions(int topLeftX, int topLeftY, int w, int h)
     setSize(knobFrameWidth, knobFrameHeight);
 }
 
-
-void CustomKnob::paint (Graphics& g)
+void CustomKnob::mouseEnter(const MouseEvent& event)
 {
-    if (!knobImage.isNull())
+    hovering = true;
+    repaint();
+    Slider::mouseEnter(event);
+}
+
+void CustomKnob::mouseExit(const MouseEvent& event)
+{
+    hovering = false;
+    repaint();
+    Slider::mouseExit(event);
+}
+
+void CustomKnob::paint(Graphics& g)
+{
+    const double normalizedValue = valueToProportionOfLength(getValue());
+
+    if (era == UIEra::modern)
     {
-        double normalizedValue = (getValue() - getMinimum()) / (getMaximum() - getMinimum());
-        int frameNum = normalizedValue*(knobNumFrames-1);
-		juce::Rectangle<int> clipRect(0, frameNum*knobFrameHeight, knobFrameWidth, knobFrameHeight);
-        const Image & clippedIm = knobImage.getClippedImage(clipRect);
-        g.drawImageAt(clippedIm, 0, 0);
+        // The SHAME knob: the gear-edged wheel carrying the glowing
+        // inverted cross — the shelved design's centrepiece. Other knobs
+        // are glossy balls ringed with LED dots.
+        if (modernCross)
+            ModernTheme::drawShameGear(g, getLocalBounds().toFloat(), (float) normalizedValue,
+                                       extremeVisual, glowLevel, hovering);
+        else
+            ModernTheme::drawKnob(g, getLocalBounds().toFloat(), (float) normalizedValue,
+                                  false, extremeVisual, hovering);
+        return;
+    }
+
+    if (! knobImage.isNull())
+    {
+        const int frameNum = (int) (normalizedValue * (knobNumFrames - 1));
+        juce::Rectangle<int> clipRect(0, frameNum * knobFrameHeight, knobFrameWidth, knobFrameHeight);
+        g.drawImageAt(knobImage.getClippedImage(clipRect), 0, 0);
     }
 }
 
-
+void CustomKnob::mouseDoubleClick(const MouseEvent& event)
+{
+    if (onDoubleClick != nullptr)
+        onDoubleClick();
+    else
+        Slider::mouseDoubleClick(event);
+}

@@ -1,131 +1,112 @@
-#ifndef ENVELOPEDIPS_H
-#define ENVELOPEDIPS_H
+#pragma once
 
-
-//#include "Generator.h"
-//#include <stdlib.h>
-//#include "../../JuceLibraryCode/JuceHeader.h"
 #include "../shameConfig.h"
-#include <time.h>
 
-
-
-//recalculate random points for every loop
-//ability to reset domain, and reset it for every loop
-//ability to set fixed number of points. NOTE: random number of points is calculated as input to setting number of points.
-//ability to have different starting values. NOTE: need to interpolate to next starting value.
-
+// Looping random amplitude-dip envelope: each pass through the domain
+// scatters a fresh set of dip points — the slow "breathing" of worn tape.
+// Rev 2: sample-rate aware, juce::Random instead of srand/rand, preallocated
+// point storage so the per-loop recalculation never allocates on the audio
+// thread, and interpolation guards against degenerate spans.
 class EnvelopeDips
 {
 public:
-    
-    EnvelopeDips() : domain(44100), incr(0.0), dynamicExtremity(0.0), numPointRandomness(0.0), numPoints(5)
+    EnvelopeDips()
     {
-        srand (time(NULL));
-        
+        points.ensureStorageAllocated(64);
+        prepare(44100.0);
         calculateDipPoints();
-        
     }
-    
-    ~EnvelopeDips(){}
-    
-    
+
+    void prepare(double sampleRate)
+    {
+        samplesPerMs = (float) (sampleRate / 1000.0);
+        domain = domainMS * samplesPerMs;
+        incr = 0.0f;
+    }
+
     void calculateDipPoints()
     {
-        //std::cout << "Dyn Intensity: " << dynamicExtremity << std::endl;
-        
-        points.clear();
-        
-        float startingValue = 1.0;
-        
-        int numRandPoints = numPoints * (1.0 - numPointRandomness*(float)(rand() % 1000)/1000) + 1;
-        float partitionSize = 1/((float)numRandPoints + 1);
-        
-        //create set of points, where the beginning and end are always a value of 1.
-        Point<float> p0(0.0, startingValue);
-        points.add(p0);
-        for(int i = 0; i < numRandPoints; i++)
+        points.clearQuick();
+
+        const float startingValue = 1.0f;
+        const int numRandPoints = jmax(1, (int) (numPoints * (1.0f - numPointRandomness * random.nextFloat()) + 1));
+        const float partitionSize = 1.0f / ((float) numRandPoints + 1.0f);
+
+        points.add({ 0.0f, startingValue });
+        for (int i = 0; i < numRandPoints; ++i)
         {
-            float xInit = ((float)i+1)/(numRandPoints+1);
-            float xDeviation = (float)(rand() % 1000)/1000 * partitionSize / 2.5; //why is 2.5 in the denominator??
-            xDeviation = xDeviation * powf(-1, rand()%2);
-            
-            Point<float> pRand(xInit + xDeviation, 1.0 - dynamicExtremity*(float)(rand() % 1000)/1000);
-            points.add(pRand);
-            
-            //std::cout << "x deviation: " << xDeviation << std::endl;
+            const float xInit = ((float) i + 1.0f) / (float) (numRandPoints + 1);
+            float xDeviation = random.nextFloat() * partitionSize / 2.5f;
+            if (random.nextBool())
+                xDeviation = -xDeviation;
+
+            points.add({ jlimit(0.001f, 0.999f, xInit + xDeviation),
+                         1.0f - dynamicExtremity * random.nextFloat() });
         }
-        Point<float> p1(1.0, startingValue);
-        points.add(p1);
-        
-        
-//        for(int i = 0; i < points.size(); i++)
-//        {
-//            std::cout << "RandPoint: " << i << ". x, y: " << points[i].getX() << ", " << points[i].getY() << std::endl;
-//        }
+        points.add({ 1.0f, startingValue });
     }
-    
-    
-    void setDomainMS(float d){ domain = d * 44.1; } //NOTE: domain is set in milleseconds
-    void setDynamicExtremity(float dE){dynamicExtremity = dE;}
-    void setNumPoints(int nP){numPoints = nP;}
-    void setNumPointRandomness(float nPR){numPointRandomness = nPR;}
-    
-    
+
+    void setDomainMS(float d)
+    {
+        domainMS = d;
+        domain = jmax(1.0f, domainMS * samplesPerMs);
+    }
+
+    void setDynamicExtremity(float dE)   { dynamicExtremity = jlimit(0.0f, 1.0f, dE); }
+    void setNumPoints(int nP)            { numPoints = jlimit(1, 40, nP); }
+    void setNumPointRandomness(float r)  { numPointRandomness = jlimit(0.0f, 1.0f, r); }
+
     float processEnvelopeDips()
     {
-        float curPos = incr/domain;
-        
-        //find the two points the curPos is between.
-        float priorX, nxtX;
-        float priorY, nxtY;
-        for(int i = points.size() - 1; i >= 0; i--)
+        const float curPos = jlimit(0.0f, 1.0f, incr / domain);
+
+        float priorX = points[0].getX(), priorY = points[0].getY();
+        float nxtX = points[points.size() - 1].getX(), nxtY = points[points.size() - 1].getY();
+
+        for (int i = points.size() - 1; i >= 0; --i)
         {
-            if(curPos >= points[i].getX())
+            if (curPos >= points[i].getX())
             {
                 priorX = points[i].getX();
                 priorY = points[i].getY();
-                nxtX = points[i+1].getX();
-                nxtY = points[i+1].getY();
+                if (i + 1 < points.size())
+                {
+                    nxtX = points[i + 1].getX();
+                    nxtY = points[i + 1].getY();
+                }
+                else
+                {
+                    nxtX = priorX;
+                    nxtY = priorY;
+                }
                 break;
             }
         }
-        
-        //Calculate the distance from the prior point relative to the next point.
-        float distFromPrior = (curPos - priorX)/(nxtX - priorX);
-        
-        //The output value is the weighted average between the two points.
-        float interpolatedValue = (1- distFromPrior)*priorY + (distFromPrior)*nxtY;
-        
-        
-        //std::cout << "CurPos: " << curPos << ", prY: " << priorY << ", NxtY: "<< nxtY << ", Value: " << interpolatedValue << std::endl;
-        
-        //increment through domain.
+
+        const float span = nxtX - priorX;
+        const float distFromPrior = span > 0.0f ? (curPos - priorX) / span : 0.0f;
+        const float interpolatedValue = (1.0f - distFromPrior) * priorY + distFromPrior * nxtY;
+
         incr++;
-        if(incr >= domain)
+        if (incr >= domain)
         {
-            calculateDipPoints();   //recalculate the dip points
-            incr = 0;               //set the increment to 0
+            calculateDipPoints();
+            incr = 0;
         }
-        
+
         return interpolatedValue;
     }
-    
-    
-    
+
 private:
-    
-    float incr;
-    float domain;
-    float dynamicExtremity;
-    float numPointRandomness;
-    int numPoints;
-    
+    float samplesPerMs = 44.1f;
+    float domainMS = 1000.0f;
+
+    float incr = 0.0f;
+    float domain = 44100.0f;
+    float dynamicExtremity = 0.0f;
+    float numPointRandomness = 0.0f;
+    int numPoints = 5;
+
+    Random random;
     Array<Point<float>> points;
-    
 };
-
-
-
-
-#endif

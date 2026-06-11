@@ -3,220 +3,183 @@
 //  KissOfShame
 //
 //  Created by Brian Hansen on 9/9/14.
+//  Rev 2: sample-rate aware, allocation-free processing, tape-type voicing.
 //
+//  The keystone of the plugin: dual-path odd/even harmonic waveshaping
+//  (tanh) followed by a one-pole rolloff that models HF loss of the tape
+//  path. The original 2014 constants are preserved as the S-111 voicing.
 //
 
-#ifndef __KissOfShame__InputSaturation__
-#define __KissOfShame__InputSaturation__
-
-
-
-#include <iostream>
-#include "math.h"
+#pragma once
 
 #include "../shameConfig.h"
-
-
 
 class InputSaturation
 {
 public:
-    
     InputSaturation(float threshold, float rateOdd, float rateEven)
     {
-        drive = 1.0;
-        output = 1.0;
-        
-        if(threshold > 1.0)      satThreshold = 1.0;
-        else if(threshold < 0.0) satThreshold = 0.0;
-        else                     satThreshold = threshold;
+        satThreshold = jlimit(0.0f, 1.0f, threshold);
+        satRateOdd   = jmax(0.0f, rateOdd);
+        satRateEven  = jmax(0.0f, rateEven);
+    }
 
-        satRateOdd = (rateOdd < 0.0) ? 0.0 : rateOdd;
-        satRateEven = (rateEven < 0.0) ? 0.0 : rateEven;
-        
-        saturationGlobalLevel = 0.0;
-        
-        oddGain = 1.0;
-        evenGain = 0.3;
-        
-        for(int i = 0; i < 10; i++)
+    void prepare(double newSampleRate, int maxBlockSize, int numChannels)
+    {
+        sampleRate = newSampleRate;
+        evenBuffer.setSize(jmax(1, numChannels), jmax(1, maxBlockSize), false, true);
+        priorSamp.assign((size_t) jmax(1, numChannels), 0.0f);
+        setFrequencyRolloff(rolloffHz);
+    }
+
+    void reset()
+    {
+        std::fill(priorSamp.begin(), priorSamp.end(), 0.0f);
+    }
+
+    void setRateOdd(float rate)    { satRateOdd = jmax(0.0f, rate); }
+    void setRateEven(float rate)   { satRateEven = jmax(0.0f, rate); }
+    void setThreshold(float t)     { satThreshold = jlimit(0.0f, 1.0f, t); }
+    void setOutput(float o)        { output = o; }
+
+    void setDrive(float normalized)
+    {
+        // 0..1 mapped over a +/-18dB drive range, like the original.
+        drive = Decibels::decibelsToGain(normalized * 36.0f - 18.0f);
+    }
+
+    // S-111: the original 1950s-70s formulation — darker, more even-harmonic
+    // colour (the untouched 2014 constants).
+    // A-456: high-output/low-noise mastering formulation — brighter rolloff,
+    // tighter and cleaner saturation.
+    void setTapeType(bool useA456)
+    {
+        if (isA456 == useA456)
+            return;
+
+        isA456 = useA456;
+
+        if (isA456)
         {
-            priorSamp[i] = 0.0;
+            evenGain  = 0.15f;
+            rolloffHz = 6500.0f;
+            satRateOdd = 1.6f;
         }
-        coef = 0.0;
-        setFrequencyRolloff(4000);
-    }
-    
-    ~InputSaturation(){}
-    
-    
-    void setRateOdd(float rate)
-    {
-        satRateOdd = (rate < 0.0) ? 0.0 : rate;
-    }
-    void setRateEven(float rate)
-    {
-        satRateEven = (rate < 0.0) ? 0.0 : rate;
+        else
+        {
+            evenGain  = 0.3f;
+            rolloffHz = 4000.0f;
+            satRateOdd = 2.0f;
+        }
+
+        setFrequencyRolloff(rolloffHz);
     }
 
-    
-    void setThreshold(float thresh)
-    {
-        if(thresh > 1.0)      satThreshold = 1.0;
-        else if(thresh < 0.0) satThreshold = 0.0;
-        else                  satThreshold = thresh;
-    }
-    
-    void setDrive(float _drive)
-    {
-        //NOTE: drive input is in dB
-        drive = _drive * 36.0 - 18.0;
-        
-        //now convert dB to Amp
-        drive = powf(10, drive/20);
-    }
-    
-    void setOutput(float _output)
-    {
-        output = _output;
-    }
-    
-    void setGlobalLevel(float level) {saturationGlobalLevel = level;}
-    
-    
     void setFrequencyRolloff(float f)
     {
-        if (f < 0) f = 0;
-        
-        coef = f * (2 * PI) / SAMPLE_RATE;
-        if (coef > 1)
-            coef = 1;
-        else if (coef < 0)
-            coef = 0;
+        rolloffHz = jmax(0.0f, f);
+        coef = (float) (rolloffHz * MathConstants<double>::twoPi / sampleRate);
+        coef = jlimit(0.0f, 1.0f, coef);
     }
-    
-    
-    void processInputSaturation(AudioSampleBuffer& sampleBuffer, int numChannels)
+
+    void process(AudioSampleBuffer& sampleBuffer, int numChannels)
     {
-        sampleBufferEven = sampleBuffer;
-        
-        //odd harmonic distortion saturation
+        const int numSamples = sampleBuffer.getNumSamples();
+        numChannels = jmin(numChannels, evenBuffer.getNumChannels());
+
+        for (int ch = 0; ch < numChannels; ++ch)
+            evenBuffer.copyFrom(ch, 0, sampleBuffer, ch, 0, numSamples);
+
         processOddHarmonicWaveshaping(sampleBuffer, numChannels);
         sampleBuffer.applyGain(oddGain);
- 
-        //even harmonic distortion saturation
-        processEvenHarmonicWaveshaping(sampleBufferEven, numChannels);
-        sampleBufferEven.applyGain(evenGain);
-        
-        //Mix the even and odd harmonic signals
-        weightEvenAndOddWaveshaping(sampleBuffer, sampleBufferEven, numChannels);
-        
-        //apply single-pole lowpass filter, rolloff at 4000Hz.
+
+        processEvenHarmonicWaveshaping(evenBuffer, numChannels, numSamples);
+        evenBuffer.applyGain(0, numSamples, evenGain);
+
+        weightEvenAndOddWaveshaping(sampleBuffer, numChannels);
+
         lowPassFilter(sampleBuffer, numChannels);
-     };
-    
-    
+    }
+
+private:
     void lowPassFilter(AudioSampleBuffer& sampleBuffer, int numChannels)
     {
         for (int channel = 0; channel < numChannels; ++channel)
         {
-            float last = priorSamp[channel]; //Needs to be specific to channel!!!
-            float feedback = 1 - coef;
+            float last = priorSamp[(size_t) channel];
+            const float feedback = 1.0f - coef;
             float* sample = sampleBuffer.getWritePointer(channel);
-            
-            for (int i = 0; i < sampleBuffer.getNumSamples(); i++)
-            {
+
+            for (int i = 0; i < sampleBuffer.getNumSamples(); ++i)
                 last = sample[i] = coef * sample[i] + feedback * last;
-            }
-            
-            priorSamp[channel] = last;
+
+            priorSamp[(size_t) channel] = last;
         }
     }
-    
-    void weightEvenAndOddWaveshaping(AudioSampleBuffer& sampleBufferOdd, AudioSampleBuffer& sampleBufferEven, int numChannels)
+
+    void weightEvenAndOddWaveshaping(AudioSampleBuffer& oddBuffer, int numChannels)
     {
         for (int channel = 0; channel < numChannels; ++channel)
         {
-            float* sample_odd = sampleBufferOdd.getWritePointer(channel);
-            float* sample_even = sampleBufferEven.getWritePointer(channel);
-            
-            for(int i = 0; i < sampleBufferOdd.getNumSamples(); i++)
-            {
-                sample_odd[i] = (oddGain*sample_odd[i] + evenGain*sample_even[i])/(oddGain + evenGain);
-            }
+            float* odd = oddBuffer.getWritePointer(channel);
+            const float* even = evenBuffer.getReadPointer(channel);
+
+            for (int i = 0; i < oddBuffer.getNumSamples(); ++i)
+                odd[i] = (oddGain * odd[i] + evenGain * even[i]) / (oddGain + evenGain);
         }
     }
-    
-    void processEvenHarmonicWaveshaping(AudioSampleBuffer& sampleBuffer, int numChannels)
+
+    void processEvenHarmonicWaveshaping(AudioSampleBuffer& buffer, int numChannels, int numSamples)
     {
         for (int channel = 0; channel < numChannels; ++channel)
         {
-            float* samples = sampleBuffer.getWritePointer(channel);
-            
-            for(int i = 0; i < sampleBuffer.getNumSamples(); i++)
+            float* samples = buffer.getWritePointer(channel);
+
+            for (int i = 0; i < numSamples; ++i)
             {
-                samples[i] = fabs(samples[i]);
-                samples[i] *= drive;
-                
-                samples[i] = tanhf(satRateEven * samples[i]);
-                
-                samples[i] *= output;
-            }
-        }
-    }
-    
-    void processOddHarmonicWaveshaping(AudioSampleBuffer& sampleBuffer, int numChannels)
-    {
-        for (int channel = 0; channel < numChannels; ++channel)
-        {
-            float* samples = sampleBuffer.getWritePointer(channel);
-            
-            for(int i = 0; i < sampleBuffer.getNumSamples(); i++)
-            {
-                samples[i] *= drive;
-                
-                if(samples[i] > satThreshold)
-                {
-                    samples[i] = satThreshold + tanhf(satRateOdd * (fabs(samples[i]) - satThreshold)) * (1.0 - satThreshold);
-                }
-                else if(samples[i] < -satThreshold)
-                {
-                    samples[i] = -satThreshold - tanhf(satRateOdd * (fabs(samples[i]) - satThreshold)) * (1.0 - satThreshold);
-                }
-                else
-                {
-                    //samples[i] = samples[i];
-                }
-                
+                samples[i] = std::fabs(samples[i]) * drive;
+                samples[i] = std::tanh(satRateEven * samples[i]);
                 samples[i] *= output;
             }
         }
     }
 
+    void processOddHarmonicWaveshaping(AudioSampleBuffer& buffer, int numChannels)
+    {
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            float* samples = buffer.getWritePointer(channel);
 
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                samples[i] *= drive;
 
-    
-private:
-    
-    float evenGain;
-    float oddGain;
-    
-    float satRateEven;
-    float satRateOdd;          //How quickly the saturation approaches the upper bound.
-    float satThreshold;     //The amplitude level at which the saturation waveshaping begins.
-    
-    float drive;
-    float output;
-    
-    float saturationGlobalLevel;
-    
-    AudioSampleBuffer sampleBufferEven;
-    
-    //For single-pole low pass filter
-    float priorSamp[10];
-    float coef;
-    
+                if (samples[i] > satThreshold)
+                    samples[i] = satThreshold + std::tanh(satRateOdd * (std::fabs(samples[i]) - satThreshold)) * (1.0f - satThreshold);
+                else if (samples[i] < -satThreshold)
+                    samples[i] = -satThreshold - std::tanh(satRateOdd * (std::fabs(samples[i]) - satThreshold)) * (1.0f - satThreshold);
+
+                samples[i] *= output;
+            }
+        }
+    }
+
+    double sampleRate = 44100.0;
+
+    float evenGain = 0.3f;
+    float oddGain  = 1.0f;
+
+    float satRateEven  = 0.272f;
+    float satRateOdd   = 2.0f;   // how quickly saturation approaches the bound
+    float satThreshold = 0.0f;   // level where waveshaping begins
+
+    float drive  = 1.0f;
+    float output = 1.0f;
+
+    bool isA456 = false;
+    float rolloffHz = 4000.0f;
+
+    AudioSampleBuffer evenBuffer;
+    std::vector<float> priorSamp;
+    float coef = 0.0f;
 };
-
-
-#endif /* defined(__KissOfShame__InputSaturation__) */

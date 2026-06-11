@@ -1,88 +1,132 @@
+#pragma once
 
+#include "Theme.h"
 
-#ifndef KOS_CustomButton_h
-#define KOS_CustomButton_h
-
-#include "../shameConfig.h"
-
-
-class CustomButton : public ImageButton
+// Toggle button with two faces: heritage frames clipped from the faceplate
+// filmstrips, or flat labelled pills in the modern era.
+//
+// Heritage image mapping preserves Rev 1's ImageButton behavior exactly:
+// the "on" image shows while UNtoggled, the "off" image while toggled
+// (that's how the original lamp/button frames were authored).
+class CustomButton : public Button
 {
 public:
-    CustomButton()
+    // Modern-era render styles (heritage always uses the filmstrip images).
+    enum class ModernStyle { pill, lampKnob, crossLamp };
+
+    CustomButton() : Button({}) {}
+    ~CustomButton() override = default;
+
+    void setEra(UIEra newEra) { era = newEra; repaint(); }
+    void setModernStyle(ModernStyle style) { modernStyle = style; }
+
+    // Labels for the modern era: shown according to toggle state.
+    void setModernLabels(const String& whenOff, const String& whenOn)
     {
-        File offImgFile("/Users/brianhansen/Documents/Brian/Work/1_KOS/kissofshame/GUI_Resources/testButton-off.png");
-        File onImgFile("/Users/brianhansen/Documents/Brian/Work/1_KOS/kissofshame/GUI_Resources/testButton-on.png");
-//        File offImgFile(String(GUI_PATH) + "testButton-off.png");
-//        File onImgFile(String(GUI_PATH) + "testButton-on.png");
-        
-        //std::cout << "off file = " << offImgFile.getFullPathName() << std::endl;
-        
-        offImage = ImageCache::getFromFile(offImgFile);
-        onImage = ImageCache::getFromFile(onImgFile);
-        
-        setImages(true, false, true, onImage, 1.0f, Colour(0x0), Image(), 1.0f, Colour(0x0), offImage, 1.0f, Colour(0x0));
-        
-        setSize(onImage.getWidth(), onImage.getHeight());
+        labelOff = whenOff;
+        labelOn = whenOn;
     }
-    
-    ~CustomButton(){}
-    
-    //void paint (Graphics& g){};
 
     void resizeButton(float scale)
     {
-        offImage = offImage.rescaled(offImage.getWidth()*scale, offImage.getHeight()*scale);
-        onImage = onImage.rescaled(onImage.getWidth()*scale, onImage.getHeight()*scale);
-        setImages(true, false, true, onImage, 1.0f, Colour(0x0), Image(), 1.0f, Colour(0x0), offImage, 1.0f, Colour(0x0));
-//        repaint();
-    }
-    
-     void setImagePaths(String onImgPath, String offImgPath)
-     {
-         File offImgFile(String(GUI_PATH) + onImgPath);
-         File onImgFile(String(GUI_PATH) + offImgPath);
-
-         offImage = ImageCache::getFromFile(offImgFile);
-         onImage = ImageCache::getFromFile(onImgFile);
-     
-         setImages(true, false, true, onImage, 1.0f, Colour(0x0), Image(), 1.0f, Colour(0x0), offImage, 1.0f, Colour(0x0));
-     }
-    
-    void setClippedCustomOnImage(String onImgPath, int topLeftX, int topLeftY, int w, int h)
-    {
-        onImage = ImageCache::getFromFile(File(onImgPath));
-        
-        if (!onImage.isNull())
-        {
-            juce::Rectangle<int> clipRect(topLeftX, topLeftY, w, h);
-            onImage = onImage.getClippedImage(clipRect);
-        }
-        
-        setImages(true, false, true, onImage, 1.0f, Colour(0x0), Image(), 1.0f, Colour(0x0), offImage, 1.0f, Colour(0x0));
-    }
-    
-    void setClippedCustomOffImage(String offImgPath, int topLeftX, int topLeftY, int w, int h)
-    {
-        offImage = ImageCache::getFromFile(File(offImgPath));
-        
-        if (!offImage.isNull())
-        {
-            juce::Rectangle<int> clipRect(topLeftX, topLeftY, w, h);
-            offImage = offImage.getClippedImage(clipRect);
-        }
-        
-        setImages(true, false, true, onImage, 1.0f, Colour(0x0), Image(), 1.0f, Colour(0x0), offImage, 1.0f, Colour(0x0));
+        imageUntoggled = imageUntoggled.rescaled((int) (imageUntoggled.getWidth() * scale),
+                                                 (int) (imageUntoggled.getHeight() * scale));
+        imageToggled = imageToggled.rescaled((int) (imageToggled.getWidth() * scale),
+                                             (int) (imageToggled.getHeight() * scale));
+        applySize();
     }
 
-    
+    void setClippedCustomOnImage(const Image& source, int topLeftX, int topLeftY, int w, int h)
+    {
+        if (! source.isNull())
+            imageUntoggled = source.getClippedImage({ topLeftX, topLeftY, w, h });
+        applySize();
+    }
+
+    void setClippedCustomOffImage(const Image& source, int topLeftX, int topLeftY, int w, int h)
+    {
+        if (! source.isNull())
+            imageToggled = source.getClippedImage({ topLeftX, topLeftY, w, h });
+        applySize();
+    }
+
+    void paintButton(Graphics& g, bool highlighted, bool down) override
+    {
+        if (era == UIEra::modern)
+        {
+            const bool on = getToggleState();
+            auto r = getLocalBounds().toFloat();
+
+            switch (modernStyle)
+            {
+            case ModernStyle::pill:
+                ModernTheme::drawButton(g, r, on ? labelOn : labelOff, on, down, highlighted);
+                return;
+
+            case ModernStyle::lampKnob:
+            {
+                // BYPASS: a small ball with its pink lamp. Lamp lit = signal
+                // flowing; dark = bypassed.
+                auto knobArea = r.withTrimmedTop(r.getHeight() * 0.22f);
+                ModernTheme::drawKnob(g, knobArea, on ? 0.0f : 1.0f, false, false, highlighted);
+
+                const float lampR = jmax(3.0f, r.getWidth() * 0.085f);
+                const auto lc = Point<float>(r.getX() + lampR + 2.0f, r.getY() + lampR + 1.0f);
+                if (! on)
+                {
+                    g.setColour(ModernTheme::accent.withAlpha(0.4f));
+                    g.fillEllipse(lc.x - lampR * 2.0f, lc.y - lampR * 2.0f, lampR * 4.0f, lampR * 4.0f);
+                }
+                g.setColour(on ? ModernTheme::accent.darker(1.6f) : ModernTheme::accent);
+                g.fillEllipse(lc.x - lampR, lc.y - lampR, lampR * 2, lampR * 2);
+                g.setColour(Colours::white.withAlpha(on ? 0.12f : 0.6f));
+                g.fillEllipse(lc.x - lampR * 0.4f, lc.y - lampR * 0.5f, lampR * 0.8f, lampR * 0.8f);
+                return;
+            }
+
+            case ModernStyle::crossLamp:
+            {
+                // Tape formulation: the small engraved cross with a lamp.
+                // Lamp dark = S-111, lit = A-456.
+                auto markArea = r.withTrimmedBottom(r.getHeight() * 0.30f).reduced(r.getWidth() * 0.22f, 0.0f);
+                ModernTheme::drawInfernalLoveMark(g, markArea,
+                                                  Colours::white.withAlpha(highlighted ? 0.5f : 0.32f),
+                                                  ModernTheme::panel);
+
+                const float lampR = jmax(2.6f, r.getWidth() * 0.10f);
+                const auto lc = Point<float>(r.getCentreX(), r.getBottom() - lampR - 2.0f);
+                if (on)
+                {
+                    g.setColour(ModernTheme::accent.withAlpha(0.45f));
+                    g.fillEllipse(lc.x - lampR * 2.2f, lc.y - lampR * 2.2f, lampR * 4.4f, lampR * 4.4f);
+                }
+                g.setColour(on ? ModernTheme::accent : ModernTheme::accent.darker(1.8f));
+                g.fillEllipse(lc.x - lampR, lc.y - lampR, lampR * 2, lampR * 2);
+                g.setColour(Colours::white.withAlpha(on ? 0.6f : 0.10f));
+                g.fillEllipse(lc.x - lampR * 0.4f, lc.y - lampR * 0.5f, lampR * 0.8f, lampR * 0.8f);
+                return;
+            }
+            }
+        }
+
+        const Image& img = getToggleState() ? imageToggled : imageUntoggled;
+        if (! img.isNull())
+            g.drawImageAt(img, 0, 0);
+    }
 
 private:
+    void applySize()
+    {
+        if (! imageUntoggled.isNull())
+            setSize(imageUntoggled.getWidth(), imageUntoggled.getHeight());
+    }
 
-	Image offImage;
-    Image onImage;
+    Image imageUntoggled;
+    Image imageToggled;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CustomButton)
+    UIEra era = UIEra::heritage;
+    ModernStyle modernStyle = ModernStyle::pill;
+    String labelOff, labelOn;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CustomButton)
 };
-
-#endif

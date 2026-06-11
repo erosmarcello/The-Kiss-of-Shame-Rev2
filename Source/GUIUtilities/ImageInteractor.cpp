@@ -1,38 +1,19 @@
 #include "ImageInteractor.h"
 
+ImageInteractor::ImageInteractor() = default;
 
-ImageInteractor::ImageInteractor()
-:
-numFrames(128), curValue(0), desaturate(false)
-{
-    minValue = 0.0;
-    maxValue = 1.0;
-    
-    imagePath = GUI_PATH + "MixKnob/Knob-Pan-Mix.png";
-    
-    image = ImageCache::getFromFile(File(imagePath));
-    frameWidth = image.getWidth();
-    frameHeight = image.getHeight()/numFrames;
-    setSize(frameWidth, frameHeight);
-}
-
-ImageInteractor::~ImageInteractor()
-{}
-
-
-void ImageInteractor::setNumFrames(int _numFrames)
+void ImageInteractor::setNumFrames(int newNumFrames)
 {
     curValue = 0;
-    numFrames = _numFrames;
+    numFrames = jmax(1, newNumFrames);
 }
 
-void ImageInteractor::setAnimationImage(String filePath)
+void ImageInteractor::setAnimationImage(const Image& newImage)
 {
-    imagePath = filePath;
-    image = ImageCache::getFromFile(File(imagePath));
-    desatImage = image.createCopy();
-    satImage = image.createCopy();
+    satImage = newImage;
+    desatImage = newImage.createCopy();
     desatImage.desaturate();
+    repaint();
 }
 
 void ImageInteractor::setDimensions(int topLeftX, int topLeftY, int w, int h)
@@ -43,18 +24,23 @@ void ImageInteractor::setDimensions(int topLeftX, int topLeftY, int w, int h)
     setSize(frameWidth, frameHeight);
 }
 
-
-void ImageInteractor::paint (Graphics& g)
+void ImageInteractor::paint(Graphics& g)
 {
-    if (!image.isNull())
+    if (era == UIEra::modern)
     {
-        double normalizedValue = (curValue - minValue) / (maxValue - minValue);
-        int frameNum = normalizedValue*(numFrames-1);
-		juce::Rectangle<int> clipRect(0, frameNum*frameHeight, frameWidth, frameHeight);
-        image = (desaturate) ? desatImage : satImage;
-        const Image & clippedIm = image.getClippedImage(clipRect);
-        g.drawImageAt(clippedIm, 0, 0);
+        if (modernStyle == ModernStyle::vuMeter)
+            ModernTheme::drawVUMeter(g, getLocalBounds().toFloat(), getNormalizedValue(),
+                                     getNormalizedValue());
+
+        return; // hidden: the vector era draws its own world
+    }
+
+    const Image& image = desaturate ? desatImage : satImage;
+
+    if (! image.isNull())
+    {
+        const int frameNum = (int) (getNormalizedValue() * (numFrames - 1));
+        juce::Rectangle<int> clipRect(0, frameNum * frameHeight, frameWidth, frameHeight);
+        g.drawImageAt(image.getClippedImage(clipRect), 0, 0);
     }
 }
-
-
