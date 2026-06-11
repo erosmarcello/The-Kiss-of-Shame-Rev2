@@ -152,7 +152,7 @@ private:
 
         if (std::abs(slide - targetSlide) > 0.005f)
         {
-            slide += (targetSlide - slide) * 0.25f;
+            slide += (targetSlide - slide) * 0.42f; // snappy spring
             active = true;
         }
         else

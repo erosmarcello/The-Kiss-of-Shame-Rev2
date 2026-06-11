@@ -61,8 +61,10 @@ private:
     ScaledContent content;
 
     //==========================================================================
-    // Snapshot of the outgoing era, faded out over ~300ms when the switch
-    // flips — changing decades should feel like an event.
+    // The decade change: the outgoing era lifts off the panel — eased
+    // crossfade with a slight zoom while the signature pink flares and
+    // recedes, like a lamp marking the jump. ~220ms, 60fps, fully eased;
+    // fast enough to feel instant, soft enough to feel expensive.
     class EraTransitionOverlay : public Component, private Timer
     {
     public:
@@ -76,15 +78,31 @@ private:
 
         void paint(Graphics& g) override
         {
-            g.setOpacity(alpha);
-            g.drawImage(snapshot, getLocalBounds().toFloat());
+            const float eased = t < 0.5f ? 2.0f * t * t
+                                         : 1.0f - std::pow(-2.0f * t + 2.0f, 2.0f) / 2.0f;
+
+            // outgoing era: fade + gentle lift
+            const float zoom = 1.0f + 0.020f * eased;
+            const auto centre = getLocalBounds().toFloat().getCentre();
+            g.setOpacity(1.0f - eased);
+            g.drawImageTransformed(snapshot,
+                                   AffineTransform::scale(zoom, zoom, centre.x, centre.y)
+                                       .scaled((float) getWidth() / (float) jmax(1, snapshot.getWidth()),
+                                               (float) getHeight() / (float) jmax(1, snapshot.getHeight()),
+                                               0.0f, 0.0f));
+
+            // the pink flare: blooms early, gone by the end
+            const float flare = std::sin(MathConstants<float>::pi * jmin(1.0f, t * 1.5f));
+            g.setOpacity(1.0f);
+            g.setColour(ModernTheme::accent.withAlpha(0.14f * flare));
+            g.fillAll();
         }
 
     private:
         void timerCallback() override
         {
-            alpha -= 0.055f;
-            if (alpha <= 0.0f)
+            t += 1.0f / (60.0f * 0.22f); // ~220ms
+            if (t >= 1.0f)
             {
                 stopTimer();
                 setVisible(false);
@@ -96,7 +114,7 @@ private:
         }
 
         Image snapshot;
-        float alpha = 1.0f;
+        float t = 0.0f;
     };
 
     //==========================================================================
