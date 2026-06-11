@@ -30,7 +30,6 @@ public:
         : inSaturation(0.0f, 2.0f, 0.272f)
     {
         environments[eEnvironmentOff]            = nullptr;
-        environments[eEnvironmentEnvironment]    = std::make_unique<EnvironsFX>();
         environments[eEnvironmentStudioCloset]   = std::make_unique<StudioClosetFX>();
         environments[eEnvironmentHumidCellar]    = std::make_unique<HumidCellarFX>();
         environments[eEnvironmentHotLocker]      = std::make_unique<HotLockerFX>();

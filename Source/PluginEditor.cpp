@@ -204,27 +204,14 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
     { applyEra(era == UIEra::heritage ? UIEra::modern : UIEra::heritage, true); };
     content.addAndMakeVisible(eraSwitch);
 
-    // The frosted status spine fills the band between reel bay and deck
-    // (modern era, reels shown).
-    statusBar.setBounds(16, 334, 928, 88);
-    statusBar.setProviders({
-        .isA456 = [this] { return tapeTypeButton.getToggleState(); },
-        .isPrintThrough = [this] { return printThroughButton.getToggleState(); },
-        .isExtreme = [this] { return processor.isShameExtreme(); },
-        .isPlaying = [this] { return processor.isTransportPlaying(); },
-        .isBypassed = [this] { return bypassButton.getToggleState(); },
-        .environmentIndex = [this] { return environmentsComponent.getCurrentIndex(); },
-        .age = [this] { return (float) ageKnob.getValue(); },
-        .shame = [this] { return (float) shameKnob.getValue(); },
-        .audioLevel = [this] { return jlimit(0.0f, 1.0f, processor.getCurrentRMSL() * 3.0f); } });
-    content.addChildComponent(statusBar);
+    // The status spine retired with the flat design; the component stays
+    // dormant for now.
+    statusBar.setVisible(false);
 
     shameKnob.setModernCross(true);
-    bypassButton.setModernLabels("IN", "BYP");
-    tapeTypeButton.setModernLabels("S-111", "A-456");
-    printThroughButton.setModernLabels("PRINT", "PRINT");
-    linkIOButtonL.setModernLabels("LN", "LN");
-    linkIOButtonR.setModernLabels("LN", "LN");
+    bypassButton.setModernStyle(CustomButton::ModernStyle::lampKnob);
+    tapeTypeButton.setModernStyle(CustomButton::ModernStyle::crossLamp);
+    printThroughButton.setModernStyle(CustomButton::ModernStyle::pill);
     vuMeterL.setModernStyle(ImageInteractor::ModernStyle::vuMeter);
     vuMeterR.setModernStyle(ImageInteractor::ModernStyle::vuMeter);
 
@@ -246,27 +233,34 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
     shameKnob.setExtremeVisual(processor.isShameExtreme());
 
     showReels = processor.getShowReels();
-    content.setBounds(0, 0, 960, showReels ? 703 : 266);
+    content.setBounds(0, 0, 960, 703);
     if (! showReels)
     {
         setReelMode(false);
         applyReelVisibility();
     }
 
-    applyEra(processor.getUIEra() == "modern" ? UIEra::modern : UIEra::heritage, false);
-
-    // Resizable with a locked aspect: the canvas scales uniformly and the
-    // session remembers the zoom. The scale must be read BEFORE the resize
-    // limits are installed: installing them resizes the (still 0x0) editor
-    // to the minimum, and resized() must not persist that transient.
-    const float restoredScale = processor.getUIScale();
     setResizable(true, true);
-    updateSizeConstraints();
-    setSize((int) std::lround(960.0f * restoredScale),
-            (int) std::lround((showReels ? 703.0f : 266.0f) * restoredScale));
+    applyEra(processor.getUIEra() == "modern" ? UIEra::modern : UIEra::heritage, false);
 
     constructionComplete = true;
     startTimer(25);
+}
+
+int KissOfShameAudioProcessorEditor::logicalHeight() const
+{
+    return showReels ? 703 : (era == UIEra::modern ? 381 : 266);
+}
+
+void KissOfShameAudioProcessorEditor::refreshCanvasSize()
+{
+    // The scale must be read BEFORE the resize limits are applied:
+    // installing them can resize a 0x0 editor to the minimum, and resized()
+    // must never persist that transient (constructionComplete guards it).
+    const float scale = getWidth() > 0 ? (float) getWidth() / 960.0f : processor.getUIScale();
+    content.setSize(960, logicalHeight());
+    updateSizeConstraints();
+    setSize((int) std::lround(960.0f * scale), (int) std::lround((float) logicalHeight() * scale));
 }
 
 //==============================================================================
@@ -281,7 +275,7 @@ void KissOfShameAudioProcessorEditor::resized()
 
 void KissOfShameAudioProcessorEditor::updateSizeConstraints()
 {
-    const int logicalH = showReels ? 703 : 266;
+    const int logicalH = logicalHeight();
     setResizeLimits((int) (960 * 0.6), (int) (logicalH * 0.6),
                     (int) (960 * 2.0), (int) (logicalH * 2.0));
     if (auto* constrainer = getConstrainer())
@@ -333,6 +327,7 @@ void KissOfShameAudioProcessorEditor::applyEra(UIEra newEra, bool animate)
     eraSwitch.setEra(era);
 
     positionEraDependentControls();
+    refreshCanvasSize();
 
     if (animate && eraTransition != nullptr)
         addAndMakeVisible(*eraTransition);
@@ -342,24 +337,61 @@ void KissOfShameAudioProcessorEditor::applyEra(UIEra newEra, bool animate)
 
 void KissOfShameAudioProcessorEditor::positionEraDependentControls()
 {
-    // Heritage positions are engraved into the faceplate artwork; the modern
-    // era re-seats what would otherwise float or collide.
-    const int dy = showReels ? 0 : -437;
-
     if (era == UIEra::modern)
     {
-        linkIOButtonL.setTopLeftPosition(66, 562 + dy);
-        linkIOButtonR.setTopLeftPosition(886, 562 + dy);
-        bypassButton.setTopLeftPosition(902, 474 + dy); // utility row, under REV 2
+        // The shelved-design layout: deck spans y 322..703 under the reels.
+        const int dy = showReels ? 0 : -322;
+
+        bypassButton.setBounds(44, 348 + dy, 48, 58);
+        ageKnob.setBounds(280, 348 + dy, 66, 66);
+        hissKnob.setBounds(606, 348 + dy, 66, 66);
+        blendKnob.setBounds(712, 348 + dy, 66, 66);
+        inputSaturationKnob.setBounds(22, 416 + dy, 144, 144);
+        outputKnob.setBounds(794, 416 + dy, 144, 144);
+        vuMeterL.setBounds(176, 440 + dy, 156, 110);
+        vuMeterR.setBounds(628, 440 + dy, 156, 110);
+        shameKnob.setBounds(355, 394 + dy, 250, 250);
+        environmentsComponent.setBounds(358, 656 + dy, 244, 28);
+        printThroughButton.setBounds(692, 574 + dy, 66, 26);
+        tapeTypeButton.setBounds(36, 628 + dy, 38, 56);
+        eraSwitch.setBounds(866, 664 + dy, 80, 26);
+        backlight.setBounds(0, showReels ? 322 : 0, 960, 381);
+
+        faceImage.setVisible(false);
+        shameKnobImage.setVisible(false);
+        linkIOButtonL.setVisible(false);
+        linkIOButtonR.setVisible(false);
     }
     else
     {
-        linkIOButtonL.setTopLeftPosition(137, 605 + dy);
-        linkIOButtonR.setTopLeftPosition(792, 605 + dy);
-        bypassButton.setTopLeftPosition(202, 469 + dy);
+        // Heritage positions are engraved into the faceplate artwork.
+        const int dy = showReels ? 0 : -437;
+
+        bypassButton.setBounds(202, 469 + dy, 34, 34);
+        ageKnob.setBounds(350, 455 + dy, 74, 72);
+        hissKnob.setBounds(547, 455 + dy, 78, 72);
+        blendKnob.setBounds(705, 455 + dy, 78, 72);
+        inputSaturationKnob.setBounds(104, 521 + dy, 116, 116);
+        outputKnob.setBounds(757, 521 + dy, 122, 116);
+        vuMeterL.setBounds(251, 518 + dy, 108, 108);
+        vuMeterR.setBounds(605, 518 + dy, 110, 108);
+        shameKnob.setBounds(401, 491 + dy, 174, 163);
+        shameKnobImage.setBounds(401, 491 + dy, 174, 163);
+        environmentsComponent.setBounds(388, 654 + dy, 183, 32);
+        printThroughButton.setBounds(698, 609 + dy, 47, 41);
+        tapeTypeButton.setBounds(233, 610 + dy, 42, 39);
+        linkIOButtonL.setBounds(137, 605 + dy, 30, 30);
+        linkIOButtonR.setBounds(792, 605 + dy, 30, 30);
+        eraSwitch.setBounds(862, 656 + dy, 84, 30);
+        backlight.setBounds(0, showReels ? 437 : 0, 960, 266);
+
+        faceImage.setVisible(true);
+        shameKnobImage.setVisible(true);
+        linkIOButtonL.setVisible(true);
+        linkIOButtonR.setVisible(true);
     }
 
-    statusBar.setVisible(era == UIEra::modern && showReels);
+    statusBar.setVisible(false);
 }
 
 //==============================================================================
@@ -427,15 +459,12 @@ void KissOfShameAudioProcessorEditor::toggleReels()
     showReels = ! showReels;
     processor.setShowReels(showReels);
 
-    setReelMode(showReels);
+    if (era == UIEra::heritage)
+        setReelMode(showReels);
+
     applyReelVisibility();
     positionEraDependentControls();
-
-    const float scale = (float) getWidth() / 960.0f;
-    const int logicalH = showReels ? 703 : 266;
-    content.setSize(960, logicalH);
-    updateSizeConstraints();
-    setSize((int) std::lround(960.0f * scale), (int) std::lround((float) logicalH * scale));
+    refreshCanvasSize();
     repaint();
 }
 
@@ -488,121 +517,69 @@ void KissOfShameAudioProcessorEditor::paintModernPanel(Graphics& g)
     using namespace ModernTheme;
 
     auto full = content.getLocalBounds().toFloat();
+    const float deckTop = showReels ? 322.0f : 0.0f;
+    auto deck = full.withTop(deckTop);
 
-    ColourGradient bg(panel, full.getCentreX(), full.getY(), panelDeep, full.getCentreX(), full.getBottom(), false);
-    g.setGradientFill(bg);
-    g.fillAll();
+    // weathered gunmetal faceplate
+    ColourGradient steel(Colour(0xff2f2f34), deck.getCentreX(), deck.getY(),
+                         Colour(0xff121215), deck.getCentreX(), deck.getBottom(), false);
+    g.setGradientFill(steel);
+    g.fillRect(deck);
+    fillGrunge(g, deck, 1.0f);
+    fillGrain(g, deck, 0.35f);
 
-    // control deck: raised material with edge light, vignette and grain
-    auto deck = full.withTop(showReels ? 437.0f : 0.0f).reduced(8.0f, 6.0f);
+    // vignette: the plate falls away at the edges
+    ColourGradient vig(Colours::transparentBlack, deck.getCentreX(), deck.getCentreY(),
+                       Colours::black.withAlpha(0.45f), deck.getX(), deck.getY(), true);
+    vig.addColour(0.66, Colours::transparentBlack);
+    g.setGradientFill(vig);
+    g.fillRect(deck);
 
-    g.setColour(Colours::black.withAlpha(0.55f));
-    g.fillRoundedRectangle(deck.translated(0, 2.5f).expanded(1.0f), 15.0f);
-
-    ColourGradient deckFill(panel.brighter(0.06f), deck.getCentreX(), deck.getY(),
-                            panel.darker(0.18f), deck.getCentreX(), deck.getBottom(), false);
-    g.setGradientFill(deckFill);
-    g.fillRoundedRectangle(deck, 14.0f);
-
-    {
-        Graphics::ScopedSaveState save(g);
-        Path clip; clip.addRoundedRectangle(deck, 14.0f);
-        g.reduceClipRegion(clip);
-
-        fillGrain(g, deck, 0.55f);
-
-        // ambient ember pooling under the cross — the lamp at the heart of
-        // the machine
-        const auto shameCentre = shameKnob.getBounds().toFloat().getCentre();
-        const auto emberColour = processor.isShameExtreme() ? accentHot : accent;
-        ColourGradient ember(emberColour.withAlpha(processor.isShameExtreme() ? 0.16f : 0.09f),
-                             shameCentre.x, shameCentre.y,
-                             emberColour.withAlpha(0.0f), shameCentre.x, shameCentre.y - 240.0f, true);
-        g.setGradientFill(ember);
-        g.fillRect(deck);
-
-        // vignette so the deck edges fall away
-        ColourGradient vig(Colours::transparentBlack, deck.getCentreX(), deck.getCentreY(),
-                           Colours::black.withAlpha(0.35f), deck.getX(), deck.getY(), true);
-        vig.addColour(0.7, Colours::transparentBlack);
-        g.setGradientFill(vig);
-        g.fillRect(deck);
-    }
-
-    // machined edge: top light, bottom seat, corner screws
+    // machined seam under the reel bay
+    g.setColour(Colours::black.withAlpha(0.7f));
+    g.fillRect(deck.getX(), deckTop, deck.getWidth(), 2.0f);
     g.setColour(Colours::white.withAlpha(0.10f));
-    g.drawLine(deck.getX() + 16.0f, deck.getY() + 1.0f, deck.getRight() - 16.0f, deck.getY() + 1.0f, 1.0f);
-    g.setColour(outline.withAlpha(0.8f));
-    g.drawRoundedRectangle(deck, 14.0f, 1.1f);
+    g.fillRect(deck.getX(), deckTop + 2.0f, deck.getWidth(), 1.0f);
 
-    drawScrew(g, { deck.getX() + 14.0f, deck.getY() + 14.0f }, 3.4f, 0.7f);
-    drawScrew(g, { deck.getRight() - 14.0f, deck.getY() + 14.0f }, 3.4f, 2.1f);
-    drawScrew(g, { deck.getX() + 14.0f, deck.getBottom() - 14.0f }, 3.4f, 1.4f);
-    drawScrew(g, { deck.getRight() - 14.0f, deck.getBottom() - 14.0f }, 3.4f, 2.8f);
+    // distressed chrome wordmark
+    drawWordmark(g, { 372.0f, deckTop + 16.0f, 216.0f, 58.0f });
 
-    // engraved section dividers around the center stage
-    g.setColour(Colours::black.withAlpha(0.40f));
-    g.drawVerticalLine((int) (deck.getX() + 232.0f), deck.getY() + 46.0f, deck.getBottom() - 24.0f);
-    g.drawVerticalLine((int) (deck.getRight() - 232.0f), deck.getY() + 46.0f, deck.getBottom() - 24.0f);
-    g.setColour(Colours::white.withAlpha(0.05f));
-    g.drawVerticalLine((int) (deck.getX() + 233.0f), deck.getY() + 46.0f, deck.getBottom() - 24.0f);
-    g.drawVerticalLine((int) (deck.getRight() - 231.0f), deck.getY() + 46.0f, deck.getBottom() - 24.0f);
+    // corner screws
+    drawScrew(g, { deck.getX() + 13.0f, deckTop + 14.0f }, 3.2f, 0.7f);
+    drawScrew(g, { deck.getRight() - 13.0f, deckTop + 14.0f }, 3.2f, 2.1f);
+    drawScrew(g, { deck.getX() + 13.0f, deck.getBottom() - 13.0f }, 3.2f, 1.4f);
+    drawScrew(g, { deck.getRight() - 13.0f, deck.getBottom() - 13.0f }, 3.2f, 2.8f);
 
-    // recessed seats: every control sits IN the panel
-    drawRoundWell(g, inputSaturationKnob.getBounds().toFloat().reduced(6.0f));
-    drawRoundWell(g, outputKnob.getBounds().toFloat().reduced(6.0f));
-    drawRoundWell(g, ageKnob.getBounds().toFloat().reduced(2.0f));
-    drawRoundWell(g, hissKnob.getBounds().toFloat().reduced(2.0f));
-    drawRoundWell(g, blendKnob.getBounds().toFloat().reduced(2.0f));
-    drawRoundWell(g, shameKnob.getBounds().toFloat().expanded(6.0f));
-    drawRectWell(g, vuMeterL.getBounds().toFloat().expanded(2.0f), 10.0f);
-    drawRectWell(g, vuMeterR.getBounds().toFloat().expanded(2.0f), 10.0f);
-    drawRectWell(g, environmentsComponent.getBounds().toFloat().expanded(3.0f, 2.0f), 16.0f);
-    drawRectWell(g, eraSwitch.getBounds().toFloat().expanded(2.0f), 15.0f);
-
-    // wordmark, led by the Infernal Love mark
-    auto header = deck.withHeight(30.0f).reduced(14.0f, 5.0f);
-    auto markArea = header.removeFromLeft(13.0f).reduced(0.0f, 1.0f);
-    g.setColour(accent.withAlpha(0.25f));
-    g.fillEllipse(markArea.expanded(7.0f));
-    drawInfernalLoveMark(g, markArea, accent, panel.brighter(0.06f));
-    header.removeFromLeft(8.0f);
-    g.setColour(textPrimary);
-    g.setFont(labelFont(15.0f));
-    g.drawText("THE KISS OF SHAME", header, Justification::centredLeft, false);
-    g.setColour(textDim);
-    g.setFont(labelFont(10.0f));
-    g.drawText("REV 2", deck.withHeight(30.0f).reduced(14.0f, 6.0f),
-               Justification::centredRight, false);
-
-    // control captions, engraved (shadow under light) and anchored to the
-    // live component positions so they follow the collapsible layout
-    auto caption = [&g](const Component& c, const String& text)
+    // stenciled white captions, exactly where the shelved design put them
+    auto stencil = [&g](juce::Rectangle<int> area, const String& text, float size,
+                        Justification just = Justification::centred)
     {
-        g.setFont(ModernTheme::labelFont(10.0f));
-        g.setColour(Colours::black.withAlpha(0.6f));
-        g.drawText(text, c.getX() - 10, c.getBottom() + 3, c.getWidth() + 20, 14,
-                   Justification::centred, false);
-        g.setColour(ModernTheme::textDim);
-        g.drawText(text, c.getX() - 10, c.getBottom() + 2, c.getWidth() + 20, 14,
-                   Justification::centred, false);
+        g.setFont(ModernTheme::labelFont(size));
+        g.setColour(Colours::black.withAlpha(0.65f));
+        g.drawText(text, area.translated(0, 1), just, false);
+        g.setColour(Colours::white.withAlpha(0.86f));
+        g.drawText(text, area, just, false);
     };
 
-    // SHAME's caption sits above the knob: the environment strip owns the
-    // space below it.
-    g.setColour(processor.isShameExtreme() ? accentHot : textDim);
-    g.setFont(labelFont(10.0f));
-    g.drawText(processor.isShameExtreme() ? "SHAME — EXTREME" : "SHAME",
-               shameKnob.getX() - 10, shameKnob.getY() - 16, shameKnob.getWidth() + 20, 14,
-               Justification::centred, false);
+    auto under = [](const Component& c, int dy, int h) {
+        return juce::Rectangle<int>(c.getX() - 20, c.getBottom() + dy, c.getWidth() + 40, h);
+    };
 
-    caption(inputSaturationKnob, "INPUT");
-    caption(hissKnob, "HISS");
-    caption(ageKnob, "AGE");
-    caption(blendKnob, "BLEND");
-    caption(outputKnob, "OUTPUT");
-    caption(environmentsComponent, "ENVIRONMENT");
-    caption(eraSwitch, "ERA");
+    stencil(under(bypassButton, 0, 13), "BYPASS", 10.0f);
+    stencil(under(ageKnob, 1, 13), "AGE", 10.5f);
+    stencil(under(hissKnob, 1, 13), "HISS", 10.5f);
+    stencil(under(blendKnob, 1, 13), "BLEND", 10.5f);
+    stencil(under(inputSaturationKnob, -6, 15), "INPUT", 12.0f);
+    stencil(under(outputKnob, -6, 15), "OUTPUT", 12.0f);
+
+    // meter legends sit low-left of the glass, like the print on the plate
+    stencil({ vuMeterL.getX() + 4, vuMeterL.getBottom() + 2, 40, 13 }, "IN", 10.5f, Justification::centredLeft);
+    stencil({ vuMeterR.getX() + 4, vuMeterR.getBottom() + 2, 44, 13 }, "OUT", 10.5f, Justification::centredLeft);
+
+    stencil({ printThroughButton.getX() - 20, printThroughButton.getBottom() + 2,
+              printThroughButton.getWidth() + 40, 12 }, "PRINT", 9.0f);
+    stencil({ printThroughButton.getX() - 20, printThroughButton.getBottom() + 13,
+              printThroughButton.getWidth() + 40, 12 }, "THROUGH", 9.0f);
 }
 
 void KissOfShameAudioProcessorEditor::paintContentOverChildren(Graphics& g)

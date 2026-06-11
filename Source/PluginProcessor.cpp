@@ -36,12 +36,12 @@ AudioProcessorValueTreeState::ParameterLayout KissOfShameAudioProcessor::createP
     layout.add(std::make_unique<AudioParameterFloat>(ParameterID { ParamIDs::flange, 1 }, "Flange", unit, 0.0f));
 
     layout.add(std::make_unique<AudioParameterBool>(ParameterID { ParamIDs::bypass, 1 },       "Bypass",        false));
-    layout.add(std::make_unique<AudioParameterBool>(ParameterID { ParamIDs::tapeType, 1 },     "Tape Type A-456", false));
+    layout.add(std::make_unique<AudioParameterBool>(ParameterID { ParamIDs::tapeType, 1 },     "Tape Type", false));
     layout.add(std::make_unique<AudioParameterBool>(ParameterID { ParamIDs::printThrough, 1 }, "Print Through", false));
 
     layout.add(std::make_unique<AudioParameterChoice>(
         ParameterID { ParamIDs::environment, 1 }, "Environment",
-        StringArray { "Off", "Environs", "Studio Closet", "Humid Cellar", "Hot Locker", "Hurricane Sandy" }, 0));
+        StringArray { "Off", "Studio Closet", "Humid Cellar", "Hot Locker", "Hurricane Sandy" }, 0));
 
     return layout;
 }

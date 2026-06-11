@@ -38,6 +38,8 @@ private:
     void applyEra(UIEra newEra, bool animate);
     void positionEraDependentControls();
     void updateSizeConstraints();
+    int logicalHeight() const;
+    void refreshCanvasSize();
     void paintModernPanel(Graphics& g);
     void paintContentOverChildren(Graphics& g);
 

@@ -134,11 +134,10 @@ class KosProcessor extends AudioWorkletProcessor {
     const env = P.env | 0, age = P.age;
     let lpHz = 20000, dipDepth = 0, crackleP = 0, burstAmt = 0, rumbleAmt = 0;
     if (env > 0 && age > 0.001) {
-      if (env === 1) { lpHz = 16000 * (1 - age) + 9000 * age; dipDepth = 0.12 * age; }
-      if (env === 2) { lpHz = 14000 * (1 - age) + 6500 * age; dipDepth = 0.25 * age; crackleP = 6 * age / sr; }
-      if (env === 3) { lpHz = 10000 * (1 - age) + 2800 * age; dipDepth = 0.45 * age; rumbleAmt = 0.08 * age; }
-      if (env === 4) { lpHz = 12000 * (1 - age) + 6000 * age; dipDepth = 0.30 * age; }
-      if (env === 5) { lpHz = 20050 * (1 - age) + 2000; dipDepth = 0.5 * age; burstAmt = age > 0.5 ? 2 * (age - 0.5) : 0; crackleP = 14 * age / sr; }
+      if (env === 1) { lpHz = 14000 * (1 - age) + 6500 * age; dipDepth = 0.25 * age; crackleP = 6 * age / sr; }
+      if (env === 2) { lpHz = 10000 * (1 - age) + 2800 * age; dipDepth = 0.45 * age; rumbleAmt = 0.08 * age; }
+      if (env === 3) { lpHz = 12000 * (1 - age) + 6000 * age; dipDepth = 0.30 * age; }
+      if (env === 4) { lpHz = 20050 * (1 - age) + 2000; dipDepth = 0.5 * age; burstAmt = age > 0.5 ? 2 * (age - 0.5) : 0; crackleP = 14 * age / sr; }
     }
     this.dipExtremity = dipDepth;
     this.envLPCoef = Math.min(1, lpHz * 2 * Math.PI / sr);

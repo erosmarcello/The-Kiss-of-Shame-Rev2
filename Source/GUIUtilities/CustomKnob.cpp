@@ -47,53 +47,15 @@ void CustomKnob::paint(Graphics& g)
 
     if (era == UIEra::modern)
     {
-        // The Shame knob carries the Infernal Love logo — the inverted cross
-        // with the heart. In the modern era we keep the ORIGINAL 2014
-        // artwork, frame-accurate and still rotating, ringed by the vector
-        // value arc. The brand is not negotiable.
-        if (modernCross && ! knobImage.isNull())
-        {
-            const auto bounds = getLocalBounds().toFloat();
-            const auto centre = bounds.getCentre();
-            const float radius = bounds.getWidth() * 0.5f - bounds.getWidth() * 0.06f;
-            const Colour glowColour = extremeVisual ? ModernTheme::accentHot : ModernTheme::accent;
-
-            ModernTheme::dropShadowEllipse(g, bounds.reduced(bounds.getWidth() * 0.10f), 0.6f);
-
-            // ambient halo behind the artwork — swells with the program
-            // audio, stronger on hover, hot in Extreme
-            const float haloAlpha = (extremeVisual ? 0.40f : (hovering ? 0.24f : 0.15f))
-                                  + 0.24f * glowLevel;
-            ColourGradient halo(glowColour.withAlpha(haloAlpha),
-                                centre.x, centre.y,
-                                glowColour.withAlpha(0.0f), centre.x, bounds.getY() - 8.0f, true);
-            g.setGradientFill(halo);
-            g.fillEllipse(bounds.expanded(10.0f));
-
-            const int frameNum = (int) (normalizedValue * (knobNumFrames - 1));
-            juce::Rectangle<int> clipRect(0, frameNum * knobFrameHeight, knobFrameWidth, knobFrameHeight);
-            g.drawImage(knobImage.getClippedImage(clipRect), bounds, RectanglePlacement::centred);
-
-            Path track;
-            track.addCentredArc(centre.x, centre.y, radius, radius, 0.0f,
-                                ModernTheme::rotaryStart, ModernTheme::rotaryEnd, true);
-            g.setColour(Colours::black.withAlpha(0.55f));
-            g.strokePath(track, PathStrokeType(3.6f, PathStrokeType::curved, PathStrokeType::rounded));
-            g.setColour(Colours::white.withAlpha(0.08f));
-            g.strokePath(track, PathStrokeType(1.2f, PathStrokeType::curved, PathStrokeType::rounded));
-
-            if (normalizedValue > 0.001)
-            {
-                const float angle = ModernTheme::rotaryStart
-                                  + (float) normalizedValue * (ModernTheme::rotaryEnd - ModernTheme::rotaryStart);
-                ModernTheme::drawBloomArc(g, centre, radius, ModernTheme::rotaryStart, angle, glowColour, 3.0f);
-            }
-
-            return;
-        }
-
-        ModernTheme::drawKnob(g, getLocalBounds().toFloat(), (float) normalizedValue,
-                              false, extremeVisual, hovering);
+        // The SHAME knob: the gear-edged wheel carrying the glowing
+        // inverted cross — the shelved design's centrepiece. Other knobs
+        // are glossy balls ringed with LED dots.
+        if (modernCross)
+            ModernTheme::drawShameGear(g, getLocalBounds().toFloat(), (float) normalizedValue,
+                                       extremeVisual, glowLevel, hovering);
+        else
+            ModernTheme::drawKnob(g, getLocalBounds().toFloat(), (float) normalizedValue,
+                                  false, extremeVisual, hovering);
         return;
     }
 

@@ -15,7 +15,6 @@
 enum EShameEnvironments
 {
     eEnvironmentOff,
-    eEnvironmentEnvironment,
     eEnvironmentStudioCloset,
     eEnvironmentHumidCellar,
     eEnvironmentHotLocker,

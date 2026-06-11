@@ -5,7 +5,6 @@ const ACCENT = "rgb(255,55,98)";
 const ACCENT_HOT = "rgb(255,26,41)";
 const ENVIRONMENTS = [
   ["Off", "Fresh reel. No storage damage."],
-  ["Environs", "Decades on a shelf. Gentle wear."],
   ["Studio Closet", "Dry darkness. Dulling, light dropouts, stray crackle."],
   ["Humid Cellar", "Sticky-shed. Drowned highs, slow swell, damp rumble."],
   ["Hot Locker", "Heat warp. Drifting pitch, sagging level, hard print-through."],

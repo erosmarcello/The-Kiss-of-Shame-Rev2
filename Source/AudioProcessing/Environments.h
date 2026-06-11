@@ -10,7 +10,6 @@
 //  "environmental storytelling" model: pick where the reel was stored,
 //  then dial in how long it suffered there.
 //
-//      Environs        — generic shelf wear: gentle HF dulling, faint breathing
 //      Studio Closet   — mild oxidation: dulling, light dropouts, rare crackle
 //      Humid Cellar    — sticky-shed: heavy muffling, slow undulation, damp rumble
 //      Hot Locker      — heat warp: slow wow, sagging level, exaggerated print-through
@@ -38,55 +37,6 @@ public:
     virtual void reset() {}
     virtual void setIntensity(float intensity01) = 0;
     virtual void process(AudioSampleBuffer& buffer, int numChannels) = 0;
-};
-
-//==============================================================================
-// Generic wear: what a reel picks up just sitting on a shelf for decades.
-class EnvironsFX : public EnvironmentFX
-{
-public:
-    void prepare(double sampleRate, const ShameResources::AudioAssets&) override
-    {
-        lp.setSampleRate(sampleRate);
-        lp.reset();
-        dips.prepare(sampleRate);
-        dips.setDomainMS(1800);
-        dips.setNumPoints(8);
-        dips.setNumPointRandomness(0.5f);
-        setIntensity(0.0f);
-    }
-
-    void reset() override { lp.reset(); }
-
-    void setIntensity(float v) override
-    {
-        intensity = jlimit(0.0f, 1.0f, v);
-        lp.setButterworth_LowHighPass(16000.0f * (1.0f - intensity) + 9000.0f * intensity, 1.0f, true);
-        dips.setDynamicExtremity(0.12f * intensity);
-    }
-
-    void process(AudioSampleBuffer& buffer, int numChannels) override
-    {
-        if (intensity <= 0.0001f)
-            return;
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            const float dipLevel = dips.processEnvelopeDips();
-            for (int ch = 0; ch < numChannels; ++ch)
-            {
-                float* s = buffer.getWritePointer(ch);
-                if (ch < MAX_BIQUAD_CHANNELS)
-                    s[i] = lp.process(s[i], ch);
-                s[i] *= (1.0f - intensity) + intensity * dipLevel;
-            }
-        }
-    }
-
-private:
-    float intensity = 0.0f;
-    Biquads lp;
-    EnvelopeDips dips;
 };
 
 //==============================================================================

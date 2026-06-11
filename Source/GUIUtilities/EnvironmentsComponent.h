@@ -26,13 +26,12 @@ public:
         const char* blurb;
     };
 
-    static constexpr int numEnvironments = 6;
+    static constexpr int numEnvironments = 5;
 
     static const EnvironmentInfo& getInfo(int index)
     {
         static const EnvironmentInfo infos[numEnvironments] = {
             { "Off",             "Fresh reel. No storage damage." },
-            { "Environs",        "Decades on a shelf. Gentle wear." },
             { "Studio Closet",   "Dry darkness. Dulling, light dropouts, stray crackle." },
             { "Humid Cellar",    "Sticky-shed. Drowned highs, slow swell, damp rumble." },
             { "Hot Locker",      "Heat warp. Drifting pitch, sagging level, hard print-through." },
@@ -43,8 +42,11 @@ public:
 
     EnvironmentsComponent()
     {
-        setNumFrames(numEnvironments);
-        setMinMaxValues(0, (float) (numEnvironments - 1));
+        // The heritage filmstrip (00.png) still has 6 frames from the era
+        // when "Environs" existed; setDisplayedEnvironment maps around the
+        // retired frame.
+        setNumFrames(6);
+        setMinMaxValues(0, 5);
         setDimensions(0, 0, 183, 32);
         setMouseCursor(MouseCursor::PointingHandCursor);
         setTooltip("Storage environment - click to choose, scroll to step. AGE sets how long the reel suffered there.");
@@ -56,7 +58,8 @@ public:
     void setDisplayedEnvironment(int index)
     {
         currentIndex = jlimit(0, numEnvironments - 1, index);
-        updateImageWithValue((float) currentIndex);
+        // filmstrip frames: 0=Off, 1=retired, 2..5 = the four environments
+        updateImageWithValue((float) (currentIndex == 0 ? 0 : currentIndex + 1));
     }
 
     int getCurrentIndex() const { return currentIndex; }
@@ -79,8 +82,25 @@ public:
 
     void mouseUp(const MouseEvent& event) override
     {
-        if (event.mouseWasClicked() && getLocalBounds().contains(event.getPosition()))
-            showPicker();
+        if (! event.mouseWasClicked() || ! getLocalBounds().contains(event.getPosition()))
+            return;
+
+        if (getEra() == UIEra::modern)
+        {
+            const int x = event.getPosition().x;
+            if (x < getWidth() / 5)
+            {
+                select((currentIndex - 1 + numEnvironments) % numEnvironments);
+                return;
+            }
+            if (x > getWidth() * 4 / 5)
+            {
+                select((currentIndex + 1) % numEnvironments);
+                return;
+            }
+        }
+
+        showPicker();
     }
 
     void mouseWheelMove(const MouseEvent&, const MouseWheelDetails& wheel) override
@@ -235,27 +255,33 @@ public:
     {
         if (getEra() == UIEra::modern)
         {
-            auto r = getLocalBounds().toFloat().reduced(1.0f);
+            // The shelved-design strip: glowing pink "< ENVIRONMENT >" —
+            // arrows step, the name shows when a storage is engaged.
+            auto r = getLocalBounds().toFloat();
             const bool active = currentIndex > 0;
+            const String label = active ? String(getInfo(currentIndex).name).toUpperCase()
+                                        : String("ENVIRONMENT");
+            const Colour glow = ModernTheme::accent.brighter(hovering ? 0.25f : 0.05f);
 
-            g.setColour(hovering ? ModernTheme::panelRaised.brighter(0.08f) : ModernTheme::panelRaised);
-            g.fillRoundedRectangle(r, r.getHeight() * 0.5f);
-            g.setColour(active ? ModernTheme::accent : (hovering ? ModernTheme::textDim : ModernTheme::outline));
-            g.drawRoundedRectangle(r, r.getHeight() * 0.5f, 1.2f);
+            g.setFont(ModernTheme::labelFont(13.0f));
 
-            g.setColour(active ? ModernTheme::textPrimary : ModernTheme::textDim);
-            g.setFont(ModernTheme::labelFont(11.0f));
-            auto text = r.reduced(14.0f, 0.0f);
-            g.drawText(String(getInfo(currentIndex).name).toUpperCase(), text, Justification::centred, false);
+            // bloom pass under the crisp pass
+            g.setColour(glow.withAlpha(0.35f));
+            for (auto off : { -1.0f, 1.0f })
+                g.drawText(label, r.translated(off, 0.0f), Justification::centred, false);
+            g.setColour(glow);
+            g.drawText(label, r, Justification::centred, false);
 
-            // chevron: this opens a menu
-            g.setColour(ModernTheme::textDim);
-            Path chevron;
-            const float cx = r.getRight() - 13.0f, cy = r.getCentreY() - 1.5f;
-            chevron.addTriangle(cx - 4.0f, cy, cx + 4.0f, cy, cx, cy + 4.5f);
-            g.fillPath(chevron);
+            // step arrows
+            g.setColour(glow.withAlpha(hovering ? 1.0f : 0.75f));
+            Path larrow, rarrow;
+            const float cy = r.getCentreY(), ah = 5.5f;
+            larrow.addTriangle(r.getX() + 2.0f, cy, r.getX() + 12.0f, cy - ah, r.getX() + 12.0f, cy + ah);
+            rarrow.addTriangle(r.getRight() - 2.0f, cy, r.getRight() - 12.0f, cy - ah, r.getRight() - 12.0f, cy + ah);
+            g.fillPath(larrow);
+            g.fillPath(rarrow);
 
-            drawAgeUnderline(g, r.reduced(16.0f, 0.0f));
+            drawAgeUnderline(g, r.reduced(20.0f, 1.0f));
             return;
         }
 

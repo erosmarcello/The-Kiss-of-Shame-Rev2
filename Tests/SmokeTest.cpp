@@ -106,8 +106,8 @@ int main()
 
         if (auto* env = kos.apvts.getParameter(ParamIDs::environment))
         {
-            static const char* names[] = { "Off", "Environs", "StudioCloset", "HumidCellar", "HotLocker", "HurricaneSandy" };
-            for (int e = 0; e < 6; ++e)
+            static const char* names[] = { "Off", "StudioCloset", "HumidCellar", "HotLocker", "HurricaneSandy" };
+            for (int e = 0; e < 5; ++e)
             {
                 env->setValueNotifyingHost(env->convertTo0to1((float) e));
                 failures += runPassThroughTest(*proc, names[e], 0.2f, false);

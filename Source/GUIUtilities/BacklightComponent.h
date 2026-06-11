@@ -48,18 +48,20 @@ public:
             auto r = getLocalBounds().toFloat();
 
             const float breath = 0.5f + 0.5f * std::sin(phase);
-            const float intensity = (extreme ? 0.16f : 0.09f)
-                                  + (extreme ? 0.08f : 0.05f) * breath
-                                  + 0.26f * level;
+            const float intensity = (extreme ? 0.13f : 0.045f)
+                                  + (extreme ? 0.06f : 0.025f) * breath
+                                  + 0.16f * level;
 
-            // ember pooled beneath the cross
-            ColourGradient ember(glow.withAlpha(intensity), 488.0f, 150.0f,
-                                 glow.withAlpha(0.0f), 488.0f, -260.0f, true);
+            // ember pooled beneath the cross (proportional: works for any
+            // deck geometry the eras choose)
+            const float ex = r.getWidth() * 0.5f, ey = r.getHeight() * 0.52f;
+            ColourGradient ember(glow.withAlpha(intensity), ex, ey,
+                                 glow.withAlpha(0.0f), ex, ey - r.getHeight() * 1.1f, true);
             g.setGradientFill(ember);
             g.fillRect(r);
 
             // rim light along the deck's lower edge
-            ColourGradient rim(glow.withAlpha(intensity * 0.55f), r.getCentreX(), r.getBottom(),
+            ColourGradient rim(glow.withAlpha(intensity * 0.35f), r.getCentreX(), r.getBottom(),
                                glow.withAlpha(0.0f), r.getCentreX(), r.getBottom() - 46.0f, false);
             g.setGradientFill(rim);
             g.fillRect(r.withTop(r.getBottom() - 46.0f));
