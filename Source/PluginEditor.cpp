@@ -204,6 +204,21 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
     { applyEra(era == UIEra::heritage ? UIEra::modern : UIEra::heritage, true); };
     addAndMakeVisible(eraSwitch);
 
+    // The frosted status spine fills the band between reel bay and deck
+    // (modern era, reels shown).
+    statusBar.setBounds(16, 334, 928, 88);
+    statusBar.setProviders({
+        .isA456 = [this] { return tapeTypeButton.getToggleState(); },
+        .isPrintThrough = [this] { return printThroughButton.getToggleState(); },
+        .isExtreme = [this] { return processor.isShameExtreme(); },
+        .isPlaying = [this] { return processor.isTransportPlaying(); },
+        .isBypassed = [this] { return bypassButton.getToggleState(); },
+        .environmentIndex = [this] { return environmentsComponent.getCurrentIndex(); },
+        .age = [this] { return (float) ageKnob.getValue(); },
+        .shame = [this] { return (float) shameKnob.getValue(); },
+        .audioLevel = [this] { return jlimit(0.0f, 1.0f, processor.getCurrentRMSL() * 3.0f); } });
+    addChildComponent(statusBar);
+
     shameKnob.setModernCross(true);
     bypassButton.setModernLabels("IN", "BYP");
     tapeTypeButton.setModernLabels("S-111", "A-456");
@@ -286,21 +301,24 @@ void KissOfShameAudioProcessorEditor::applyEra(UIEra newEra, bool animate)
 
 void KissOfShameAudioProcessorEditor::positionEraDependentControls()
 {
-    // The link buttons sit on engraved faceplate positions in heritage; in
-    // the modern era those coordinates land inside the big knobs, so they
-    // step outward beside INPUT and OUTPUT.
+    // Heritage positions are engraved into the faceplate artwork; the modern
+    // era re-seats what would otherwise float or collide.
     const int dy = showReels ? 0 : -437;
 
     if (era == UIEra::modern)
     {
         linkIOButtonL.setTopLeftPosition(66, 562 + dy);
         linkIOButtonR.setTopLeftPosition(886, 562 + dy);
+        bypassButton.setTopLeftPosition(902, 474 + dy); // utility row, under REV 2
     }
     else
     {
         linkIOButtonL.setTopLeftPosition(137, 605 + dy);
         linkIOButtonR.setTopLeftPosition(792, 605 + dy);
+        bypassButton.setTopLeftPosition(202, 469 + dy);
     }
+
+    statusBar.setVisible(era == UIEra::modern && showReels);
 }
 
 //==============================================================================
@@ -370,6 +388,7 @@ void KissOfShameAudioProcessorEditor::mouseDoubleClick(const MouseEvent&)
 
     setReelMode(showReels);
     applyReelVisibility();
+    positionEraDependentControls();
     setSize(faceImage.getWidth(), faceImage.getHeight());
     repaint();
 }

@@ -9,6 +9,7 @@
 #include "GUIUtilities/BacklightComponent.h"
 #include "GUIUtilities/ImageAnimationComponent.h"
 #include "GUIUtilities/EraSwitch.h"
+#include "GUIUtilities/FrostedStatusBar.h"
 
 //==============================================================================
 // The Kiss of Shame faceplate. Rev 2: parameters bind through APVTS
@@ -93,6 +94,7 @@ private:
     ImageInteractor vuMeterL, vuMeterR, shameKnobImage;
 
     EraSwitch eraSwitch;
+    FrostedStatusBar statusBar;
     std::unique_ptr<EraTransitionOverlay> eraTransition;
     UIEra era = UIEra::heritage;
 
