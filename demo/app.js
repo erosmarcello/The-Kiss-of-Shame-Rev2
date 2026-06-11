@@ -12,6 +12,7 @@ const state = {
 };
 
 let ctx = null, worklet = null, sourceNode = null, currentBuffer = null;
+let bufferIsUpload = false, currentFileName = "audio";
 const meter = { l: 0, r: 0, dispL: 0, dispR: 0 };
 
 function send(id, value) { if (worklet) worklet.port.postMessage({ id, value }); }
@@ -280,5 +281,74 @@ fileInput.onchange = async () => {
   if (!f) return;
   await ensureAudio();
   currentBuffer = await ctx.decodeAudioData(await f.arrayBuffer());
+  bufferIsUpload = true;
+  currentFileName = f.name.replace(/\.[^.]+$/, "") || "audio";
+  downloadBtn.hidden = false;
   start();
 };
+
+/* ============================== download your master ==============================
+   Renders the uploaded file through the full signal path offline, with the
+   knobs exactly where you left them, and hands back a 16-bit WAV. */
+const downloadBtn = document.getElementById("downloadBtn");
+
+function encodeWav(buffer) {
+  const ch = Math.min(2, buffer.numberOfChannels);
+  const len = buffer.length;
+  const bytes = 44 + len * ch * 2;
+  const view = new DataView(new ArrayBuffer(bytes));
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); view.setUint32(4, bytes - 8, true); w(8, "WAVE");
+  w(12, "fmt "); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); view.setUint16(22, ch, true);
+  view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * ch * 2, true);
+  view.setUint16(32, ch * 2, true); view.setUint16(34, 16, true);
+  w(36, "data"); view.setUint32(40, len * ch * 2, true);
+  const chans = [];
+  for (let c = 0; c < ch; c++) chans.push(buffer.getChannelData(Math.min(c, buffer.numberOfChannels - 1)));
+  let o = 44;
+  for (let i = 0; i < len; i++)
+    for (let c = 0; c < ch; c++) {
+      const s = Math.max(-1, Math.min(1, chans[c][i]));
+      view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      o += 2;
+    }
+  return new Blob([view], { type: "audio/wav" });
+}
+
+async function renderAndDownload() {
+  if (!currentBuffer || !bufferIsUpload) return;
+  downloadBtn.disabled = true;
+  const label = downloadBtn.textContent;
+  downloadBtn.textContent = "PRINTING TAPE…";
+  try {
+    const src = currentBuffer;
+    const tail = Math.round(0.3 * src.sampleRate); // let print-through breathe out
+    const off = new OfflineAudioContext(2, src.length + tail, src.sampleRate);
+    await off.audioWorklet.addModule("kos-processor.js");
+    const params = {};
+    for (const id of ["input", "shame", "hiss", "age", "blend", "output", "flange",
+                      "bypass", "tape", "print", "env", "extreme"])
+      params[id] = state[id];
+    const node = new AudioWorkletNode(off, "kos", { outputChannelCount: [2], processorOptions: { params } });
+    const s = off.createBufferSource();
+    s.buffer = src;
+    s.connect(node);
+    node.connect(off.destination);
+    s.start();
+    const rendered = await off.startRendering();
+    const url = URL.createObjectURL(encodeWav(rendered));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = currentFileName + "_KissOfShame.wav";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    console.error(err);
+    alert("Render failed: " + err.message);
+  }
+  downloadBtn.textContent = label;
+  downloadBtn.disabled = false;
+}
+downloadBtn.onclick = renderAndDownload;

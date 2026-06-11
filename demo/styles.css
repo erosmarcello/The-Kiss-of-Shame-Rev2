@@ -104,3 +104,99 @@ body.bypassed #k-shame, body.bypassed #shameRing { opacity: .25; }
   font-size: 11px; line-height: 1.6;
 }
 .footnote b { color: var(--pink); }
+
+/* ============ masthead ============ */
+.masthead {
+  display: flex; align-items: center; gap: 12px;
+  padding: 4px 2px 14px;
+}
+.masthead .mark { width: 15px; height: 22px; color: var(--pink); filter: drop-shadow(0 0 8px rgba(255,55,98,.5)); }
+.masthead h1 { font-size: 14px; letter-spacing: .14em; color: #e8e8ea; font-weight: 800; }
+.masthead .dia { color: var(--pink); margin: 0 2px; }
+.masthead .sub { color: #98989d; font-weight: 600; }
+.masthead .rev {
+  margin-left: 8px; font-size: 9px; letter-spacing: .12em; color: var(--pink);
+  border: 1px solid rgba(255,55,98,.45); border-radius: 4px; padding: 3px 7px; vertical-align: 2px;
+}
+
+/* ============ transport extras ============ */
+.download {
+  background: transparent;
+  border: 1.4px solid var(--pink); border-radius: 9px; color: var(--pink);
+  font: 800 12px/1 inherit; letter-spacing: .08em; padding: 11px 18px; cursor: pointer;
+  transition: all .15s;
+}
+.download:hover { background: rgba(255,55,98,.12); box-shadow: 0 0 18px rgba(255,55,98,.35); }
+.download:disabled { opacity: .5; cursor: wait; }
+
+/* ============ the manual ============ */
+.manual { margin-top: 26px; display: grid; gap: 14px; }
+.card {
+  background: linear-gradient(#161618, #101012);
+  border: 1px solid #29292c; border-radius: 14px;
+  padding: 22px 26px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 26px rgba(0,0,0,.45);
+}
+.card h2 {
+  font-size: 13px; letter-spacing: .14em; color: var(--pink);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.card p { font-size: 13.5px; line-height: 1.75; color: #c9c9ce; }
+.card p + p { margin-top: 10px; }
+.card b { color: #e8e8ea; }
+.card i { color: #e0e0e4; }
+
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.btn {
+  display: inline-block; text-decoration: none;
+  border: 1.2px solid #3f3f44; border-radius: 8px;
+  color: #c9c9ce; font: 700 11.5px/1 inherit; letter-spacing: .06em;
+  padding: 11px 16px; transition: all .15s;
+}
+.btn:hover { border-color: var(--pink); color: #fff; }
+.btn.solid {
+  background: linear-gradient(rgb(255,86,122), rgb(204,32,69));
+  border-color: transparent; color: #fff;
+  box-shadow: 0 0 18px rgba(255,55,98,.35), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.btn.solid:hover { filter: brightness(1.08); }
+.btn.big { font-size: 13px; padding: 14px 24px; }
+
+.params { display: grid; gap: 12px; }
+.params > div {
+  display: grid; grid-template-columns: 150px 1fr; gap: 14px;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.params > div:last-child { border-bottom: none; }
+.params dt { font: 800 11.5px/1.5 inherit; letter-spacing: .1em; color: #e8e8ea; }
+.params dd { font-size: 13px; line-height: 1.7; color: #b9b9bf; }
+.params dd b { color: var(--pink); }
+
+.tips { list-style: none; display: grid; gap: 10px; }
+.tips li {
+  font-size: 13px; line-height: 1.7; color: #b9b9bf;
+  padding-left: 20px; position: relative;
+}
+.tips li::before { content: "✚"; position: absolute; left: 0; color: var(--pink); font-size: 11px; top: 3px; }
+.tips b { color: #e8e8ea; }
+
+.uses { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.uses > div {
+  background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px; padding: 16px 18px;
+}
+.uses h3 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--pink); margin-bottom: 8px; }
+.uses p { font-size: 12.5px; line-height: 1.7; color: #b9b9bf; }
+.uses b { color: #e8e8ea; }
+
+/* ============ legal ============ */
+.legal { margin-top: 26px; text-align: center; display: grid; gap: 14px; justify-items: center; }
+.legal p { font-size: 11.5px; line-height: 1.7; color: #8a8a90; max-width: 640px; }
+.legal a { color: #c9c9ce; text-decoration: none; }
+.legal a:hover { color: var(--pink); }
+.legal .credits { font-size: 10.5px; color: #6f6f75; }
+
+@media (max-width: 700px) {
+  .params > div { grid-template-columns: 1fr; gap: 4px; }
+  .masthead h1 { font-size: 11px; }
+}
