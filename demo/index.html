@@ -4,97 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Kiss of Shame — Rev 2 Demo</title>
-<meta name="description" content="Interactive web demo of The Kiss of Shame analog tape emulation — wow, flutter, hiss, storage environments and the Shame EXTREME mode, processed live in your browser.">
+<meta name="description" content="The Kiss of Shame analog tape emulation — the original 2014 interface, processing audio live in your browser: wow, flutter, hiss, storage environments and Shame EXTREME.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<main class="machine">
+<main class="wrap">
+  <div class="stage-holder">
+    <div class="stage" id="stage">
+      <!-- the pink backlight glows through the faceplate's alpha -->
+      <div class="backlight" id="backlight"></div>
 
-  <!-- ====================== Reel bay ====================== -->
-  <section class="reel-bay" id="reelBay" title="Drag the reels to lean on the tape">
-    <canvas id="reels" width="1920" height="644"></canvas>
-    <div class="bay-caption">DRAG THE REELS TO LEAN ON THE TAPE</div>
-  </section>
+      <!-- the original faceplate -->
+      <div class="face" id="face"></div>
 
-  <!-- ====================== Status spine ====================== -->
-  <section class="spine">
-    <div class="cell"><label>TRANSPORT</label><div class="val"><span class="lamp" id="lamp"></span><span id="transportText">STANDBY</span></div></div>
-    <div class="cell"><label>TAPE</label><div class="val" id="tapeText">S-111</div></div>
-    <div class="cell"><label>ENVIRONMENT</label><div class="val env" id="envText">OFF</div></div>
-    <div class="cell"><label>AGE</label><div class="val" id="ageText">0%</div><div class="minibar"><i id="ageBar"></i></div></div>
-    <div class="cell"><label>PRINT-THRU</label><div class="val" id="printText">OFF</div></div>
-    <div class="cell"><label>SHAME</label><div class="val"><span id="shameText">0%</span><span class="badge" id="extremeBadge">EXTREME</span></div></div>
-  </section>
+      <!-- interactive reels: drag to lean on the tape -->
+      <canvas class="reels" id="reels" width="960" height="322"
+              title="Drag the reels to lean on the tape — real-time flange"></canvas>
 
-  <!-- ====================== Control deck ====================== -->
-  <section class="deck">
-    <header class="deck-head">
-      <div class="brand">
-        <svg class="mark" viewBox="0 0 20 30" aria-hidden="true">
-          <g fill="var(--accent)">
-            <rect x="7.4" y="0" width="5.2" height="30" rx="1.8"/>
-            <rect x="0" y="16" width="20" height="5.2" rx="1.8"/>
-          </g>
-          <path fill="var(--deck)" d="M10 23.4 C5.6 20.4 6.6 16.2 10 17.6 C13.4 16.2 14.4 20.4 10 23.4 Z"/>
-        </svg>
-        <h1>THE KISS OF SHAME</h1>
-      </div>
-      <div class="head-right">
-        <span class="rev">REV 2 — WEB DEMO</span>
-        <button class="pill" id="bypassBtn" title="Bypass">IN</button>
-      </div>
-    </header>
+      <!-- EXTREME heat over the cross -->
+      <div class="extreme-glow" id="extremeGlow"></div>
 
-    <div class="deck-grid">
-      <div class="col side">
-        <div class="knob" data-param="input" data-default="0.5"><svg></svg><span class="cap">INPUT</span></div>
-        <canvas class="vu" id="vuL" width="232" height="232"></canvas>
-        <div class="row">
-          <button class="pill" id="tapeBtn" title="Tape formulation">S-111</button>
-          <button class="pill sm" id="linkBtn" title="Link input/output">LINK</button>
-        </div>
-      </div>
+      <!-- filmstrip controls (all original assets, positions.rtf layout) -->
+      <div class="strip knob" id="k-input"  data-param="input"  data-default="0.5" title="Input trim / drive"></div>
+      <div class="strip knob" id="k-age"    data-param="age"    data-default="0"   title="Age — time spent in the chosen environment"></div>
+      <div class="strip"      id="shameRing"></div>
+      <div class="strip knob" id="k-shame"  data-param="shame"  data-default="0"   title="Shame — wow, flutter, drift, scrape. Double-click for EXTREME"></div>
+      <div class="strip knob" id="k-hiss"   data-param="hiss"   data-default="0"   title="Hiss"></div>
+      <div class="strip knob" id="k-blend"  data-param="blend"  data-default="1"   title="Blend — dry/wet"></div>
+      <div class="strip knob" id="k-output" data-param="output" data-default="0.5" title="Output trim"></div>
 
-      <div class="col center">
-        <div class="row tight">
-          <div class="knob sm" data-param="age" data-default="0"><svg></svg><span class="cap">AGE</span></div>
-          <div class="knob cross" data-param="shame" data-default="0" title="Double-click for EXTREME"><svg></svg><span class="cap" id="shameCap">SHAME</span></div>
-          <div class="knob sm" data-param="hiss" data-default="0"><svg></svg><span class="cap">HISS</span></div>
-        </div>
-        <button class="env-pill" id="envPill">OFF <i>▾</i></button>
-      </div>
+      <div class="strip" id="vuL"></div>
+      <div class="strip" id="vuR"></div>
 
-      <div class="col side">
-        <div class="knob" data-param="output" data-default="0.5"><svg></svg><span class="cap">OUTPUT</span></div>
-        <canvas class="vu" id="vuR" width="232" height="232"></canvas>
-        <div class="row">
-          <div class="knob sm" data-param="blend" data-default="1"><svg></svg><span class="cap">BLEND</span></div>
-          <button class="pill" id="printBtn" title="Print-through">PRINT</button>
-        </div>
-      </div>
+      <div class="strip click" id="env"    title="Storage environment — click to cycle, scroll to step"></div>
+      <div class="strip click" id="lamp"   title="Bypass"></div>
+      <div class="strip click" id="lever"  title="Bypass lever"></div>
+      <div class="strip click" id="tape"   title="Tape formulation: S-111 / A-456"></div>
+      <div class="strip click" id="print"  title="Print Through"></div>
+      <div class="strip click linkbtn" id="linkL" title="Link input/output"></div>
+      <div class="strip click linkbtn" id="linkR" title="Link input/output"></div>
     </div>
-
-    <footer class="transport">
-      <select id="source">
-        <option value="audio/dust_and_keys.wav">Dust &amp; Keys — lo-fi groove</option>
-        <option value="audio/night_drive.wav">Night Drive — synthwave</option>
-        <option value="audio/drum_bus.wav">Drum Bus — drums only</option>
-        <option value="upload">Your own audio…</option>
-      </select>
-      <input type="file" id="fileInput" accept="audio/*" hidden>
-      <button class="play" id="playBtn">▶ ROLL TAPE</button>
-      <a class="gh" href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener">GitHub ↗</a>
-    </footer>
-  </section>
-
-  <div class="env-menu" id="envMenu" hidden>
-    <header>STORAGE ENVIRONMENT</header>
   </div>
 
-  <p class="footnote">Live AudioWorklet port of the Rev 2 signal path — saturation, wow/flutter/drift, hiss,
-     storage environments, print-through. Double-click the cross for <b>EXTREME</b>.
-     The full plugin (AU/VST3, heritage + modern eras) lives on GitHub. © Infernal Love.</p>
+  <footer class="transport">
+    <select id="source">
+      <option value="audio/dust_and_keys.wav">Dust &amp; Keys — lo-fi groove</option>
+      <option value="audio/night_drive.wav">Night Drive — synthwave</option>
+      <option value="audio/drum_bus.wav">Drum Bus — drums only</option>
+      <option value="upload">Your own audio…</option>
+    </select>
+    <input type="file" id="fileInput" accept="audio/*" hidden>
+    <button class="play" id="playBtn">▶ ROLL TAPE</button>
+    <a class="gh" href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener">GitHub ↗</a>
+  </footer>
+
+  <p class="footnote">The original 2014 interface, live in your browser — every graphic is the real faceplate asset.
+     AudioWorklet port of the Rev 2 signal path. Double-click the cross for <b>EXTREME</b>;
+     double-click the faceplate to fold the reels away. © Infernal Love.</p>
 </main>
 
 <script src="app.js"></script>
