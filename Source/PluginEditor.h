@@ -8,6 +8,7 @@
 #include "GUIUtilities/EnvironmentsComponent.h"
 #include "GUIUtilities/BacklightComponent.h"
 #include "GUIUtilities/ImageAnimationComponent.h"
+#include "GUIUtilities/EraSwitch.h"
 
 //==============================================================================
 // The Kiss of Shame faceplate. Rev 2: parameters bind through APVTS
@@ -32,8 +33,49 @@ private:
     void setReelMode(bool shouldShowReels);
     void applyReelVisibility();
     void toggleExtreme();
+    void applyEra(UIEra newEra, bool animate);
+    void paintModernPanel(Graphics& g);
 
     KissOfShameAudioProcessor& processor;
+
+    //==========================================================================
+    // Snapshot of the outgoing era, faded out over ~300ms when the switch
+    // flips — changing decades should feel like an event.
+    class EraTransitionOverlay : public Component, private Timer
+    {
+    public:
+        explicit EraTransitionOverlay(const Image& outgoing) : snapshot(outgoing)
+        {
+            setInterceptsMouseClicks(false, false);
+            startTimerHz(60);
+        }
+
+        std::function<void()> onFinished;
+
+        void paint(Graphics& g) override
+        {
+            g.setOpacity(alpha);
+            g.drawImage(snapshot, getLocalBounds().toFloat());
+        }
+
+    private:
+        void timerCallback() override
+        {
+            alpha -= 0.055f;
+            if (alpha <= 0.0f)
+            {
+                stopTimer();
+                setVisible(false);
+                if (onFinished != nullptr)
+                    onFinished();
+                return;
+            }
+            repaint();
+        }
+
+        Image snapshot;
+        float alpha = 1.0f;
+    };
 
     //==========================================================================
     BacklightComponent backlight;
@@ -45,6 +87,10 @@ private:
 
     std::unique_ptr<ImageAnimationComponent> reelAnimation;
     ImageInteractor vuMeterL, vuMeterR, shameKnobImage;
+
+    EraSwitch eraSwitch;
+    std::unique_ptr<EraTransitionOverlay> eraTransition;
+    UIEra era = UIEra::heritage;
 
     Image faceWithReels, faceWithoutReels;
 

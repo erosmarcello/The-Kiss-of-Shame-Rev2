@@ -1,50 +1,77 @@
 #pragma once
 
-#include "../shameConfig.h"
+#include "Theme.h"
 
-// Bitmap toggle button with separate on/off frames clipped out of the
-// faceplate filmstrips. Rev 2: images come from BinaryData.
-class CustomButton : public ImageButton
+// Toggle button with two faces: heritage frames clipped from the faceplate
+// filmstrips, or flat labelled pills in the modern era.
+//
+// Heritage image mapping preserves Rev 1's ImageButton behavior exactly:
+// the "on" image shows while UNtoggled, the "off" image while toggled
+// (that's how the original lamp/button frames were authored).
+class CustomButton : public Button
 {
 public:
-    CustomButton() = default;
+    CustomButton() : Button({}) {}
     ~CustomButton() override = default;
+
+    void setEra(UIEra newEra) { era = newEra; repaint(); }
+
+    // Labels for the modern era: shown according to toggle state.
+    void setModernLabels(const String& whenOff, const String& whenOn)
+    {
+        labelOff = whenOff;
+        labelOn = whenOn;
+    }
 
     void resizeButton(float scale)
     {
-        offImage = offImage.rescaled((int) (offImage.getWidth() * scale), (int) (offImage.getHeight() * scale));
-        onImage = onImage.rescaled((int) (onImage.getWidth() * scale), (int) (onImage.getHeight() * scale));
-        applyImages();
+        imageUntoggled = imageUntoggled.rescaled((int) (imageUntoggled.getWidth() * scale),
+                                                 (int) (imageUntoggled.getHeight() * scale));
+        imageToggled = imageToggled.rescaled((int) (imageToggled.getWidth() * scale),
+                                             (int) (imageToggled.getHeight() * scale));
+        applySize();
     }
 
     void setClippedCustomOnImage(const Image& source, int topLeftX, int topLeftY, int w, int h)
     {
         if (! source.isNull())
-            onImage = source.getClippedImage({ topLeftX, topLeftY, w, h });
-        applyImages();
+            imageUntoggled = source.getClippedImage({ topLeftX, topLeftY, w, h });
+        applySize();
     }
 
     void setClippedCustomOffImage(const Image& source, int topLeftX, int topLeftY, int w, int h)
     {
         if (! source.isNull())
-            offImage = source.getClippedImage({ topLeftX, topLeftY, w, h });
-        applyImages();
+            imageToggled = source.getClippedImage({ topLeftX, topLeftY, w, h });
+        applySize();
+    }
+
+    void paintButton(Graphics& g, bool /*highlighted*/, bool down) override
+    {
+        if (era == UIEra::modern)
+        {
+            const bool on = getToggleState();
+            ModernTheme::drawButton(g, getLocalBounds().toFloat(), on ? labelOn : labelOff, on, down);
+            return;
+        }
+
+        const Image& img = getToggleState() ? imageToggled : imageUntoggled;
+        if (! img.isNull())
+            g.drawImageAt(img, 0, 0);
     }
 
 private:
-    void applyImages()
+    void applySize()
     {
-        setImages(true, false, true,
-                  onImage, 1.0f, Colour(0x0),
-                  Image(), 1.0f, Colour(0x0),
-                  offImage, 1.0f, Colour(0x0));
-
-        if (! onImage.isNull())
-            setSize(onImage.getWidth(), onImage.getHeight());
+        if (! imageUntoggled.isNull())
+            setSize(imageUntoggled.getWidth(), imageUntoggled.getHeight());
     }
 
-    Image offImage;
-    Image onImage;
+    Image imageUntoggled;
+    Image imageToggled;
+
+    UIEra era = UIEra::heritage;
+    String labelOff, labelOn;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CustomButton)
 };

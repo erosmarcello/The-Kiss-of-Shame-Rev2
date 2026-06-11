@@ -13,13 +13,24 @@ FetchContent_Declare(JUCE
     GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(JUCE)
 
+# Cross-DAW formats. AU + VST3 + Standalone build everywhere out of the box.
+# AAX (Pro Tools) additionally requires Avid's SDK (NDA, not redistributable)
+# and PACE signing: configure with -DKOS_AAX_SDK_PATH=/path/to/aax-sdk to
+# enable the AAX target.
+set(KOS_FORMATS AU VST3 Standalone)
+if(DEFINED KOS_AAX_SDK_PATH)
+    juce_set_aax_sdk_path("${KOS_AAX_SDK_PATH}")
+    list(APPEND KOS_FORMATS AAX)
+endif()
+
 juce_add_plugin(KissOfShame
     PRODUCT_NAME                "The Kiss Of Shame"
     COMPANY_NAME                "Infernal Love"
     BUNDLE_ID                   com.InfernalLove.KissOfShame
     PLUGIN_MANUFACTURER_CODE    ILov
     PLUGIN_CODE                 Plug
-    FORMATS                     AU VST3 Standalone
+    FORMATS                     ${KOS_FORMATS}
+    AAX_CATEGORY                AAX_ePlugInCategory_Harmonic
     IS_SYNTH                    FALSE
     NEEDS_MIDI_INPUT            FALSE
     NEEDS_MIDI_OUTPUT           FALSE
@@ -84,6 +95,10 @@ juce_add_console_app(KissOfShameSmokeTest PRODUCT_NAME "KissOfShameSmokeTest")
 
 target_sources(KissOfShameSmokeTest PRIVATE Tests/SmokeTest.cpp)
 
+# The GUI regression tests pump the message loop to flush async parameter
+# attachments.
+target_compile_definitions(KissOfShameSmokeTest PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+
 target_include_directories(KissOfShameSmokeTest PRIVATE
     Source
     $<TARGET_PROPERTY:KissOfShame,JUCE_GENERATED_SOURCES_DIRECTORY>)
@@ -96,3 +111,22 @@ target_link_libraries(KissOfShameSmokeTest PRIVATE
 
 enable_testing()
 add_test(NAME SmokeTest COMMAND KissOfShameSmokeTest)
+
+#===============================================================================
+# Headless editor screenshot tool (docs / visual review):
+#   KissOfShameSnapshot <outputDir> [--extreme]
+juce_add_console_app(KissOfShameSnapshot PRODUCT_NAME "KissOfShameSnapshot")
+
+target_sources(KissOfShameSnapshot PRIVATE Tests/SnapshotTool.cpp)
+
+target_compile_definitions(KissOfShameSnapshot PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+
+target_include_directories(KissOfShameSnapshot PRIVATE
+    Source
+    $<TARGET_PROPERTY:KissOfShame,JUCE_GENERATED_SOURCES_DIRECTORY>)
+
+target_link_libraries(KissOfShameSnapshot PRIVATE
+    KissOfShame
+    KissOfShameAssets
+    juce::juce_audio_utils
+    juce::juce_gui_extra)

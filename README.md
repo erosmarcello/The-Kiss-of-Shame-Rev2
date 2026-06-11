@@ -49,6 +49,21 @@ backlight runs hot while you're in it; double-click again to come back.
 Extreme is saved with your session but deliberately adds no parameter — the
 control surface stays exactly seven controls.
 
+## Plug-in formats & cross-DAW compatibility
+
+| Format | Status |
+| --- | --- |
+| **AU** (Logic, GarageBand) | Built on macOS out of the box |
+| **VST3** (Cubase, Live, Reaper, Studio One, FL, Bitwig…) | Built on macOS / Windows / Linux out of the box |
+| **AAX** (Pro Tools) | Build target ready — configure with `-DKOS_AAX_SDK_PATH=/path/to/aax-sdk`. Requires Avid's AAX SDK (NDA) and PACE signing to load in release Pro Tools |
+| VST2 | Not possible: Steinberg closed VST2 licensing in 2018; VST3 is its successor |
+
+Every CI run gates the VST3 through [pluginval](https://github.com/Tracktion/pluginval)
+at strictness level 5 on Linux, macOS and Windows — the systematic answer to
+per-host anomalies (the kind we used to chase in Cubase). The smoke tests also
+pixel-diff the Shame knob to guarantee the cross animation never silently
+stops again.
+
 ## Building from source code
 
 Rev 2 uses CMake and fetches JUCE 8 automatically:

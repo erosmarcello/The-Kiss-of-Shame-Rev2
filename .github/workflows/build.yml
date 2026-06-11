@@ -39,6 +39,32 @@ jobs:
         if: runner.os != 'Linux'
         run: ctest --test-dir build -C Release --output-on-failure
 
+      # Cross-DAW robustness gate: pluginval exercises the VST3 the way a
+      # hostile host would (threading, automation, state, editor lifecycle).
+      - name: pluginval (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -sL "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o pluginval.zip
+          unzip -o -q pluginval.zip
+          xvfb-run -a ./pluginval --strictness-level 5 --verbose \
+            --validate "build/KissOfShame_artefacts/Release/VST3/The Kiss Of Shame.vst3"
+
+      - name: pluginval (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          curl -sL "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
+          unzip -o -q pluginval.zip
+          pluginval.app/Contents/MacOS/pluginval --strictness-level 5 --verbose \
+            --validate "build/KissOfShame_artefacts/Release/VST3/The Kiss Of Shame.vst3"
+
+      - name: pluginval (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip" -OutFile pluginval.zip
+          Expand-Archive -Force pluginval.zip .
+          ./pluginval.exe --strictness-level 5 --verbose --validate "build/KissOfShame_artefacts/Release/VST3/The Kiss Of Shame.vst3"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

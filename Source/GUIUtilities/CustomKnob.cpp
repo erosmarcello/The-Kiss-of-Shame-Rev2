@@ -29,9 +29,17 @@ void CustomKnob::setKnobDimensions(int topLeftX, int topLeftY, int w, int h)
 
 void CustomKnob::paint(Graphics& g)
 {
+    const double normalizedValue = valueToProportionOfLength(getValue());
+
+    if (era == UIEra::modern)
+    {
+        ModernTheme::drawKnob(g, getLocalBounds().toFloat(), (float) normalizedValue,
+                              modernCross, extremeVisual);
+        return;
+    }
+
     if (! knobImage.isNull())
     {
-        const double normalizedValue = valueToProportionOfLength(getValue());
         const int frameNum = (int) (normalizedValue * (knobNumFrames - 1));
         juce::Rectangle<int> clipRect(0, frameNum * knobFrameHeight, knobFrameWidth, knobFrameHeight);
         g.drawImageAt(knobImage.getClippedImage(clipRect), 0, 0);

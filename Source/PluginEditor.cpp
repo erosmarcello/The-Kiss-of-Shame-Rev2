@@ -191,10 +191,27 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
         { environmentAttachment->setValueAsCompleteGesture((float) index); };
     }
 
+    ///////////////// The Era Switch //////////////////
+
+    eraSwitch.setBounds(862, 656, 84, 30);
+    eraSwitch.onEraToggled = [this]
+    { applyEra(era == UIEra::heritage ? UIEra::modern : UIEra::heritage, true); };
+    addAndMakeVisible(eraSwitch);
+
+    shameKnob.setModernCross(true);
+    bypassButton.setModernLabels("IN", "BYP");
+    tapeTypeButton.setModernLabels("S-111", "A-456");
+    printThroughButton.setModernLabels("PRINT", "PRINT");
+    linkIOButtonL.setModernLabels("LN", "LN");
+    linkIOButtonR.setModernLabels("LN", "LN");
+    vuMeterL.setModernStyle(ImageInteractor::ModernStyle::vuMeter);
+    vuMeterR.setModernStyle(ImageInteractor::ModernStyle::vuMeter);
+
     ///////////////// Initial state //////////////////
 
     shameKnobImage.updateImageWithValue((float) shameKnob.getValue());
     backlight.setExtreme(processor.isShameExtreme());
+    shameKnob.setExtremeVisual(processor.isShameExtreme());
 
     showReels = processor.getShowReels();
     setSize(960, showReels ? 703 : 266);
@@ -204,7 +221,59 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
         applyReelVisibility();
     }
 
+    applyEra(processor.getUIEra() == "modern" ? UIEra::modern : UIEra::heritage, false);
+
     startTimer(25);
+}
+
+//==============================================================================
+void KissOfShameAudioProcessorEditor::applyEra(UIEra newEra, bool animate)
+{
+    if (animate)
+    {
+        eraTransition = std::make_unique<EraTransitionOverlay>(createComponentSnapshot(getLocalBounds()));
+        eraTransition->setBounds(getLocalBounds());
+        eraTransition->onFinished = [this]
+        {
+            MessageManager::callAsync([safeThis = Component::SafePointer<KissOfShameAudioProcessorEditor>(this)]
+            {
+                if (safeThis != nullptr)
+                    safeThis->eraTransition.reset();
+            });
+        };
+    }
+
+    era = newEra;
+    processor.setUIEra(era == UIEra::modern ? "modern" : "heritage");
+
+    backlight.setEra(era);
+    faceImage.setEra(era);
+    environmentsComponent.setEra(era);
+
+    inputSaturationKnob.setEra(era);
+    shameKnob.setEra(era);
+    hissKnob.setEra(era);
+    blendKnob.setEra(era);
+    outputKnob.setEra(era);
+    ageKnob.setEra(era);
+
+    bypassButton.setEra(era);
+    tapeTypeButton.setEra(era);
+    printThroughButton.setEra(era);
+    linkIOButtonL.setEra(era);
+    linkIOButtonR.setEra(era);
+
+    reelAnimation->setEra(era);
+    vuMeterL.setEra(era);
+    vuMeterR.setEra(era);
+    shameKnobImage.setEra(era);
+
+    eraSwitch.setEra(era);
+
+    if (animate && eraTransition != nullptr)
+        addAndMakeVisible(*eraTransition);
+
+    repaint();
 }
 
 //==============================================================================
@@ -213,6 +282,7 @@ void KissOfShameAudioProcessorEditor::toggleExtreme()
     const bool extreme = ! processor.isShameExtreme();
     processor.setShameExtreme(extreme);
     backlight.setExtreme(extreme);
+    shameKnob.setExtremeVisual(extreme);
     repaint();
 }
 
@@ -240,6 +310,7 @@ void KissOfShameAudioProcessorEditor::setReelMode(bool shouldShowReels)
     shift(linkIOButtonR);
 
     shift(environmentsComponent);
+    shift(eraSwitch);
 
     shift(vuMeterL);
     shift(vuMeterR);
@@ -306,13 +377,68 @@ void KissOfShameAudioProcessorEditor::timerCallback()
 //==============================================================================
 void KissOfShameAudioProcessorEditor::paint(Graphics& g)
 {
+    if (era == UIEra::modern)
+    {
+        paintModernPanel(g);
+        return;
+    }
+
     g.fillAll(Colours::black);
+}
+
+void KissOfShameAudioProcessorEditor::paintModernPanel(Graphics& g)
+{
+    using namespace ModernTheme;
+
+    auto full = getLocalBounds().toFloat();
+
+    ColourGradient bg(panel, full.getCentreX(), full.getY(), panelDeep, full.getCentreX(), full.getBottom(), false);
+    g.setGradientFill(bg);
+    g.fillAll();
+
+    // control deck material
+    auto deck = full.withTop(showReels ? 437.0f : 0.0f).reduced(8.0f, 6.0f);
+    g.setColour(panel.brighter(0.03f));
+    g.fillRoundedRectangle(deck, 14.0f);
+    g.setColour(outline.withAlpha(0.6f));
+    g.drawRoundedRectangle(deck, 14.0f, 1.0f);
+
+    // wordmark
+    g.setColour(textPrimary);
+    g.setFont(labelFont(15.0f));
+    g.drawText("THE KISS OF SHAME", deck.withHeight(30.0f).reduced(14.0f, 6.0f),
+               Justification::centredLeft, false);
+    g.setColour(textDim);
+    g.setFont(labelFont(10.0f));
+    g.drawText("REV 2", deck.withHeight(30.0f).reduced(14.0f, 6.0f),
+               Justification::centredRight, false);
+
+    // control captions, anchored to the live component positions so they
+    // follow the collapsible layout
+    auto caption = [&g](const Component& c, const String& text)
+    {
+        g.setColour(ModernTheme::textDim);
+        g.setFont(ModernTheme::labelFont(10.0f));
+        g.drawText(text,
+                   c.getX() - 10, c.getBottom() + 2, c.getWidth() + 20, 14,
+                   Justification::centred, false);
+    };
+
+    caption(inputSaturationKnob, "INPUT");
+    caption(shameKnob, processor.isShameExtreme() ? "SHAME — EXTREME" : "SHAME");
+    caption(hissKnob, "HISS");
+    caption(ageKnob, "AGE");
+    caption(blendKnob, "BLEND");
+    caption(outputKnob, "OUTPUT");
+    caption(environmentsComponent, "ENVIRONMENT");
+    caption(eraSwitch, "ERA");
 }
 
 void KissOfShameAudioProcessorEditor::paintOverChildren(Graphics& g)
 {
-    // Extreme mode: the Shame knob runs hot.
-    if (processor.isShameExtreme())
+    // Extreme mode in the heritage era: the Shame knob runs hot. (The modern
+    // knob paints its own heat.)
+    if (era == UIEra::heritage && processor.isShameExtreme())
     {
         const auto knobBounds = shameKnob.getBounds().toFloat().expanded(10.0f);
         const auto centre = knobBounds.getCentre();

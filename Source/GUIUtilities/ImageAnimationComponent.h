@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../shameConfig.h"
+#include "Theme.h"
 
 class ImageAnimationComponent : public Component, private Timer
 {
@@ -74,9 +74,21 @@ public:
     std::function<void(float)> onFlangeDepthChanged;
     std::function<void()> onFlangeGestureEnd;
 
+    void setEra(UIEra newEra)
+    {
+        era = newEra;
+        repaint();
+    }
+
     //==========================================================================
     void paint(Graphics& g) override
     {
+        if (era == UIEra::modern)
+        {
+            paintModernReels(g);
+            return;
+        }
+
         g.fillAll(Colours::black);
 
         if (! animationImage.isNull())
@@ -107,6 +119,33 @@ public:
     bool isAnimating = false;
 
 private:
+    void paintModernReels(Graphics& g)
+    {
+        auto r = getLocalBounds().toFloat();
+
+        g.fillAll(ModernTheme::panelDeep);
+
+        // The same rotation the filmstrip would show, derived from the frame
+        // counter so transport/drag behavior is identical in both eras.
+        const float angle = (float) currentFrame * MathConstants<float>::twoPi / (float) jmax(1, animationNumFrames);
+
+        const Point<float> leftHub(r.getWidth() * 0.26f, r.getHeight() * 0.47f);
+        const Point<float> rightHub(r.getWidth() * 0.74f, r.getHeight() * 0.47f);
+        const float radius = r.getHeight() * 0.40f;
+
+        // tape path between the reels
+        g.setColour(ModernTheme::outline);
+        g.drawLine(leftHub.x, leftHub.y + radius * 0.92f, rightHub.x, rightHub.y + radius * 0.92f, 2.0f);
+
+        ModernTheme::drawReel(g, leftHub, radius, angle);
+        ModernTheme::drawReel(g, rightHub, radius, -angle);
+
+        g.setColour(ModernTheme::textDim);
+        g.setFont(ModernTheme::labelFont(10.0f));
+        g.drawText("DRAG THE REELS TO LEAN ON THE TAPE",
+                   r.removeFromBottom(18.0f), Justification::centred, false);
+    }
+
     void timerCallback() override
     {
         // The increment/threshold gate slows the reels while they're being
@@ -127,6 +166,8 @@ private:
 
         repaint();
     }
+
+    UIEra era = UIEra::heritage;
 
     float resetThresh = 1.0f;
     float curIncrement = 0.0f;

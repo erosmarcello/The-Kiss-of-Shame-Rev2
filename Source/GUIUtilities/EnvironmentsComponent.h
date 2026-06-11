@@ -2,10 +2,10 @@
 
 #include "ImageInteractor.h"
 
-// The storage-environment selector strip. Rev 2: decoupled from the
-// processor — it reports clicks through onEnvironmentChanged and is told
-// what to display via setDisplayedEnvironment, so the parameter system
-// remains the single source of truth (and host automation moves the strip).
+// The storage-environment selector strip. Decoupled from the processor:
+// clicks go out through onEnvironmentChanged, display state comes in via
+// setDisplayedEnvironment — the parameter system stays the single source of
+// truth (and host automation moves the strip).
 class EnvironmentsComponent : public ImageInteractor
 {
 public:
@@ -14,6 +14,7 @@ public:
         setNumFrames(6);
         setMinMaxValues(0, 5);
         setDimensions(0, 0, 183, 32);
+        setMouseCursor(MouseCursor::PointingHandCursor);
     }
 
     ~EnvironmentsComponent() override = default;
@@ -33,6 +34,30 @@ public:
 
         if (onEnvironmentChanged != nullptr)
             onEnvironmentChanged(next);
+    }
+
+    void paint(Graphics& g) override
+    {
+        if (getEra() == UIEra::modern)
+        {
+            static const char* names[] = { "OFF", "ENVIRONS", "STUDIO CLOSET",
+                                           "HUMID CELLAR", "HOT LOCKER", "HURRICANE SANDY" };
+
+            auto r = getLocalBounds().toFloat().reduced(1.0f);
+            const bool active = currentIndex > 0;
+
+            g.setColour(ModernTheme::panelRaised);
+            g.fillRoundedRectangle(r, r.getHeight() * 0.5f);
+            g.setColour(active ? ModernTheme::accent : ModernTheme::outline);
+            g.drawRoundedRectangle(r, r.getHeight() * 0.5f, 1.2f);
+
+            g.setColour(active ? ModernTheme::textPrimary : ModernTheme::textDim);
+            g.setFont(ModernTheme::labelFont(11.0f));
+            g.drawText(names[currentIndex], r, Justification::centred, false);
+            return;
+        }
+
+        ImageInteractor::paint(g);
     }
 
     std::function<void(int)> onEnvironmentChanged;

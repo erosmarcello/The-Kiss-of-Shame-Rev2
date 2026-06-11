@@ -26,12 +26,19 @@ void ImageInteractor::setDimensions(int topLeftX, int topLeftY, int w, int h)
 
 void ImageInteractor::paint(Graphics& g)
 {
+    if (era == UIEra::modern)
+    {
+        if (modernStyle == ModernStyle::vuMeter)
+            ModernTheme::drawVUMeter(g, getLocalBounds().toFloat(), getNormalizedValue());
+
+        return; // hidden: the vector era draws its own world
+    }
+
     const Image& image = desaturate ? desatImage : satImage;
 
     if (! image.isNull())
     {
-        const double normalizedValue = (curValue - minValue) / (maxValue - minValue);
-        const int frameNum = (int) (normalizedValue * (numFrames - 1));
+        const int frameNum = (int) (getNormalizedValue() * (numFrames - 1));
         juce::Rectangle<int> clipRect(0, frameNum * frameHeight, frameWidth, frameHeight);
         g.drawImageAt(image.getClippedImage(clipRect), 0, 0);
     }

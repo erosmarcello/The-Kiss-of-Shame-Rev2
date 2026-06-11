@@ -117,6 +117,13 @@ controls; it does not add an eighth knob.
 
 ### Theme architecture
 
+- [x] *(v1 shipped — refinement ongoing)* Theme abstraction in
+      `GUIUtilities/Theme.h` (`UIEra` + `ModernTheme` palette/draw helpers);
+      every control branches on era: vector knobs (the Shame knob keeps the
+      cross), labelled pill buttons, needle VU meters, vector reels (same
+      frame counter as the filmstrips, so transport/drag behavior is
+      identical), environment name pill, ember backlight. Original goal text
+      follows:
 - [ ] Introduce a `ShameTheme` abstraction. Controls never paint directly;
       they delegate to the active theme:
   - **Heritage** — the original skeuomorphic identity: the existing 65-frame
@@ -129,15 +136,15 @@ controls; it does not add an eighth knob.
     panels, continuous-corner rounding, restrained shadows, SF-style
     typography (ship **Inter** to avoid San Francisco licensing), with the
     signature pink (#D87063) of the cross-logo LED as the single accent color.
-- [ ] **The Era Switch itself:** a small two-position toggle on the faceplate
-      (proposed: lower-right utility strip, styled per active theme — a chrome
-      bat-handle switch in Heritage, a macOS-style segmented control in
-      Modern). Working label: **"ERA: 2014 / NOW."** Stored as a
-      non-automatable plugin property plus a global preference
-      (`ApplicationProperties`) so new instances open in the user's chosen era.
-- [ ] **Deluxe transition:** ~300 ms crossfade between eras (snapshot the
-      outgoing theme to an image, alpha-blend) — flipping the switch should
-      feel like an event.
+- [x] **The Era Switch itself** (`GUIUtilities/EraSwitch.h`): lower-right
+      utility strip, labelled **2014 / NOW**, with the *recessed interaction*:
+      the plunger must be pressed INTO the faceplate and held (~350 ms) until
+      it arms with a pink ring — release then flips the era; a casual tap just
+      springs back, like the protected switches on real tape machines. Chrome
+      plunger in Heritage, flat thumb in Modern. Stored as a non-automatable
+      state property. *(Global `ApplicationProperties` preference for new
+      instances: still to add.)*
+- [x] **Deluxe transition:** ~300 ms snapshot crossfade between eras.
 
 ### Feature parity is a hard requirement
 

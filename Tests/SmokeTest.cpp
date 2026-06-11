@@ -116,7 +116,60 @@ int main()
         }
     }
 
-    // 5. State round-trip: Extreme flag and parameters must survive.
+    // 5. GUI regression: the Shame cross must actually rotate with the
+    //    parameter (a known Rev 1 demo bug), in both eras.
+    {
+        auto& kos = dynamic_cast<KissOfShameAudioProcessor&>(*proc);
+        auto* shame = kos.apvts.getParameter(ParamIDs::shame);
+
+        for (auto eraName : { "heritage", "modern" })
+        {
+            kos.setUIEra(eraName);
+
+            std::unique_ptr<juce::AudioProcessorEditor> editor(proc->createEditorIfNeeded());
+            if (editor == nullptr || shame == nullptr)
+            {
+                std::printf("FAIL: could not create editor\n");
+                ++failures;
+                break;
+            }
+
+            const juce::Rectangle<int> shameArea(401, 491, 174, 163);
+
+            shame->setValueNotifyingHost(0.0f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+            auto frameA = editor->createComponentSnapshot(shameArea);
+
+            shame->setValueNotifyingHost(1.0f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+            auto frameB = editor->createComponentSnapshot(shameArea);
+
+            int64_t diff = 0;
+            for (int y = 0; y < frameA.getHeight(); ++y)
+                for (int x = 0; x < frameA.getWidth(); ++x)
+                {
+                    const auto a = frameA.getPixelAt(x, y);
+                    const auto b = frameB.getPixelAt(x, y);
+                    diff += std::abs((int) a.getRed() - (int) b.getRed())
+                          + std::abs((int) a.getGreen() - (int) b.getGreen())
+                          + std::abs((int) a.getBlue() - (int) b.getBlue());
+                }
+
+            const double meanDiff = (double) diff / (frameA.getWidth() * frameA.getHeight());
+            std::printf("  [gui/%s] shame knob mean pixel delta (0 -> 1): %.2f\n", eraName, meanDiff);
+
+            if (meanDiff < 1.0)
+            {
+                std::printf("FAIL [gui/%s]: the Shame cross does not animate\n", eraName);
+                ++failures;
+            }
+
+            shame->setValueNotifyingHost(0.0f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+        }
+    }
+
+    // 6. State round-trip: Extreme flag and parameters must survive.
     {
         auto& kos = dynamic_cast<KissOfShameAudioProcessor&>(*proc);
         kos.setShameExtreme(true);
