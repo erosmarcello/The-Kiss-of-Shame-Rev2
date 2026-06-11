@@ -191,6 +191,12 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
         { environmentAttachment->setValueAsCompleteGesture((float) index); };
     }
 
+    // Keep the strip's intensity underline (and picker footer) honest about
+    // what AGE is doing to the chosen environment.
+    ageKnob.onValueChange = [this]
+    { environmentsComponent.setAgeAmount((float) ageKnob.getValue()); };
+    environmentsComponent.setAgeAmount((float) ageKnob.getValue());
+
     ///////////////// The Era Switch //////////////////
 
     eraSwitch.setBounds(862, 656, 84, 30);
@@ -270,10 +276,31 @@ void KissOfShameAudioProcessorEditor::applyEra(UIEra newEra, bool animate)
 
     eraSwitch.setEra(era);
 
+    positionEraDependentControls();
+
     if (animate && eraTransition != nullptr)
         addAndMakeVisible(*eraTransition);
 
     repaint();
+}
+
+void KissOfShameAudioProcessorEditor::positionEraDependentControls()
+{
+    // The link buttons sit on engraved faceplate positions in heritage; in
+    // the modern era those coordinates land inside the big knobs, so they
+    // step outward beside INPUT and OUTPUT.
+    const int dy = showReels ? 0 : -437;
+
+    if (era == UIEra::modern)
+    {
+        linkIOButtonL.setTopLeftPosition(66, 562 + dy);
+        linkIOButtonR.setTopLeftPosition(886, 562 + dy);
+    }
+    else
+    {
+        linkIOButtonL.setTopLeftPosition(137, 605 + dy);
+        linkIOButtonR.setTopLeftPosition(792, 605 + dy);
+    }
 }
 
 //==============================================================================
@@ -403,11 +430,14 @@ void KissOfShameAudioProcessorEditor::paintModernPanel(Graphics& g)
     g.setColour(outline.withAlpha(0.6f));
     g.drawRoundedRectangle(deck, 14.0f, 1.0f);
 
-    // wordmark
+    // wordmark, led by the Infernal Love mark
+    auto header = deck.withHeight(30.0f).reduced(14.0f, 5.0f);
+    drawInfernalLoveMark(g, header.removeFromLeft(13.0f).reduced(0.0f, 1.0f),
+                         accent, panel.brighter(0.03f));
+    header.removeFromLeft(8.0f);
     g.setColour(textPrimary);
     g.setFont(labelFont(15.0f));
-    g.drawText("THE KISS OF SHAME", deck.withHeight(30.0f).reduced(14.0f, 6.0f),
-               Justification::centredLeft, false);
+    g.drawText("THE KISS OF SHAME", header, Justification::centredLeft, false);
     g.setColour(textDim);
     g.setFont(labelFont(10.0f));
     g.drawText("REV 2", deck.withHeight(30.0f).reduced(14.0f, 6.0f),
@@ -424,8 +454,15 @@ void KissOfShameAudioProcessorEditor::paintModernPanel(Graphics& g)
                    Justification::centred, false);
     };
 
+    // SHAME's caption sits above the knob: the environment strip owns the
+    // space below it.
+    g.setColour(processor.isShameExtreme() ? accentHot : textDim);
+    g.setFont(labelFont(10.0f));
+    g.drawText(processor.isShameExtreme() ? "SHAME — EXTREME" : "SHAME",
+               shameKnob.getX() - 10, shameKnob.getY() - 16, shameKnob.getWidth() + 20, 14,
+               Justification::centred, false);
+
     caption(inputSaturationKnob, "INPUT");
-    caption(shameKnob, processor.isShameExtreme() ? "SHAME — EXTREME" : "SHAME");
     caption(hissKnob, "HISS");
     caption(ageKnob, "AGE");
     caption(blendKnob, "BLEND");

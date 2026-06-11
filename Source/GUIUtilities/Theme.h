@@ -103,6 +103,36 @@ namespace ModernTheme
     }
 
     //==========================================================================
+    // The Infernal Love mark: the inverted cross with the heart at its
+    // intersection. Vector form of the brand, for wordmarks and accents —
+    // the Shame knob itself uses the original 2014 artwork.
+    inline void drawInfernalLoveMark(Graphics& g, juce::Rectangle<float> r,
+                                     Colour crossColour, Colour heartCutout)
+    {
+        const float w = r.getWidth(), h = r.getHeight();
+        const float cx = r.getCentreX();
+        const float t = w * 0.30f;                 // bar thickness
+        const float crossbarY = r.getY() + h * 0.62f; // inverted: bar in the lower third
+
+        Path cross;
+        cross.addRoundedRectangle(cx - t * 0.5f, r.getY(), t, h, t * 0.35f);
+        cross.addRoundedRectangle(r.getX(), crossbarY - t * 0.5f, w, t, t * 0.35f);
+        g.setColour(crossColour);
+        g.fillPath(cross);
+
+        // heart, cut into the intersection
+        const float s = w * 0.52f;
+        const float hy = crossbarY;
+        Path heart;
+        heart.startNewSubPath(cx, hy + 0.38f * s);
+        heart.cubicTo(cx - 0.58f * s, hy + 0.02f * s, cx - 0.46f * s, hy - 0.40f * s, cx, hy - 0.12f * s);
+        heart.cubicTo(cx + 0.46f * s, hy - 0.40f * s, cx + 0.58f * s, hy + 0.02f * s, cx, hy + 0.38f * s);
+        heart.closeSubPath();
+        g.setColour(heartCutout);
+        g.fillPath(heart);
+    }
+
+    //==========================================================================
     inline void drawVUMeter(Graphics& g, juce::Rectangle<float> bounds, float value01)
     {
         auto r = bounds.reduced(2.0f);

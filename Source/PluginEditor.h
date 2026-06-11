@@ -28,12 +28,16 @@ public:
 
     void mouseDoubleClick(const MouseEvent& event) override;
 
+    // Headless hook for the snapshot tool / GUI tests.
+    void showEnvironmentPicker() { environmentsComponent.showPicker(); }
+
 private:
     void timerCallback() override;
     void setReelMode(bool shouldShowReels);
     void applyReelVisibility();
     void toggleExtreme();
     void applyEra(UIEra newEra, bool animate);
+    void positionEraDependentControls();
     void paintModernPanel(Graphics& g);
 
     KissOfShameAudioProcessor& processor;
@@ -91,6 +95,8 @@ private:
     EraSwitch eraSwitch;
     std::unique_ptr<EraTransitionOverlay> eraTransition;
     UIEra era = UIEra::heritage;
+
+    TooltipWindow tooltipWindow { this, 700 };
 
     Image faceWithReels, faceWithoutReels;
 
