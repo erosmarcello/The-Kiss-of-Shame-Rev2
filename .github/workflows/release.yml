@@ -59,26 +59,38 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           prerelease: true
           files: TheKissOfShame-macOS.zip
           body: |
-            **The Kiss of Shame — Rev 2 test build.**
+            **Analog tape desecration for your DAW.** Rev 2 rebuilds the engine from the ground up and brings back the original 2014 interface, reels and all. Every control finally does what it says.
 
-            ### Install for Logic Pro (macOS)
+            ### Highlights
+            - The original interface, restored from the original art
+            - Four storage environments: Studio Closet, Humid Cellar, Hot Locker and Hurricane Sandy
+            - Shame EXTREME: double click the Shame knob for deeper wow, faster flutter and scrape. Think an LA-2A with every button pushed in
+            - Two tape voicings (S-111 and A-456) plus Age, Hiss, Blend, Print Through and full automation
+            - Bypass stills the signal, the reels and every indicator
+            - Try it in your browser first: https://the-kiss-of-shame.vercel.app
+
+            ### Install on macOS (Logic Pro and any AU or VST3 host)
             1. Download and unzip `TheKissOfShame-macOS.zip`.
             2. Copy `AU/The Kiss Of Shame.component` to `~/Library/Audio/Plug-Ins/Components/`.
-            3. Clear the quarantine flag (test builds are ad-hoc signed, not notarized):
+            3. Clear the quarantine flag (beta builds are ad hoc signed, not notarized):
                ```sh
-               xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/Components/The Kiss Of Shame.component"
+               xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/"The Kiss Of Shame.component"
                ```
             4. Restart Logic (or run `auval -a` to rescan). It appears under **Infernal Love → The Kiss Of Shame**.
 
-            VST3 (`~/Library/Audio/Plug-Ins/VST3/`) and the Standalone app are included as well.
-            Windows/Linux VST3 zips are attached when their jobs complete.
+            The VST3 (copy to `~/Library/Audio/Plug-Ins/VST3/`) and the Standalone app ride along in the same zip.
 
-            Highlights: era switch (heritage 2014 / modern), Shame EXTREME via
-            double-click, all storage environments live, environment picker,
-            full automation. Heritage era is the default.
+            ### Install on Windows
+            Unzip `TheKissOfShame-Windows-VST3.zip` and copy `The Kiss Of Shame.vst3` to `C:\Program Files\Common Files\VST3\`. Rescan plugins in your DAW.
+
+            ### Install on Linux
+            Unzip `TheKissOfShame-Linux-VST3.zip` and copy `The Kiss Of Shame.vst3` to `~/.vst3/`. Rescan plugins in your DAW.
+
+            Windows and Linux zips attach as their build jobs finish. It's free and open source under GPL-3.0.
 
   windows:
     name: Windows (VST3)
@@ -99,6 +111,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           prerelease: true
           files: TheKissOfShame-Windows-VST3.zip
 
@@ -128,5 +141,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           prerelease: true
           files: TheKissOfShame-Linux-VST3.zip

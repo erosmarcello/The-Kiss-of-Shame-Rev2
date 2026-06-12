@@ -3,41 +3,65 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Kiss of Shame — Rev 2 Demo</title>
-<meta name="description" content="The Kiss of Shame analog tape emulation — the original 2014 interface, processing audio live in your browser: wow, flutter, hiss, storage environments and Shame EXTREME.">
+
+<title>The Kiss of Shame ❍ Tape Desecration Processor (Rev2) Demo</title>
+<meta name="description" content="Analog tape degradation, live in your browser: wow, flutter, drift, hiss, storage environments and Shame EXTREME. Free and open-source AU/VST3 plugin by Eros Marcello. Upload your audio, process it, download the master.">
+<link rel="canonical" href="https://the-kiss-of-shame.vercel.app/">
+<meta name="theme-color" content="#0a0a0c">
+
+<!-- social preview -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Kiss of Shame">
+<meta property="og:title" content="The Kiss of Shame ❍ Tape Desecration Processor (Rev2) Demo">
+<meta property="og:description" content="Analog tape degradation, live in your browser: wow, flutter, drift, hiss, storage environments and Shame EXTREME. Free and open-source AU/VST3 by Eros Marcello.">
+<meta property="og:url" content="https://the-kiss-of-shame.vercel.app/">
+<meta property="og:image" content="https://the-kiss-of-shame.vercel.app/assets/social-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Kiss of Shame: the original tape machine interface with reels, the pink cross Shame knob and VU meters.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Kiss of Shame ❍ Tape Desecration Processor (Rev2) Demo">
+<meta name="twitter:description" content="Analog tape degradation, live in your browser. Free &amp; open-source AU/VST3 by Eros Marcello.">
+<meta name="twitter:image" content="https://the-kiss-of-shame.vercel.app/assets/social-card.jpg">
+
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 30"><rect x="7.4" width="5.2" height="30" rx="1.8" fill="rgb(255,55,98)"/><rect y="16" width="20" height="5.2" rx="1.8" fill="rgb(255,55,98)"/><path d="M10 23.4 C5.6 20.4 6.6 16.2 10 17.6 C13.4 16.2 14.4 20.4 10 23.4 Z" fill="black"/></svg>'>
+
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <main class="wrap">
+
+  <header class="masthead">
+    <svg class="mark" viewBox="0 0 20 30" aria-hidden="true">
+      <rect x="7.4" width="5.2" height="30" rx="1.8" fill="currentColor"/>
+      <rect y="16" width="20" height="5.2" rx="1.8" fill="currentColor"/>
+      <path d="M10 23.4 C5.6 20.4 6.6 16.2 10 17.6 C13.4 16.2 14.4 20.4 10 23.4 Z" fill="#000"/>
+    </svg>
+    <h1>THE KISS OF SHAME <span class="dia">❍</span> <span class="sub">TAPE DESECRATION PROCESSOR</span> <span class="rev">REV 2 DEMO</span></h1>
+  </header>
+
+  <!-- ====================== the machine ====================== -->
   <div class="stage-holder">
     <div class="stage" id="stage">
-      <!-- the pink backlight glows through the faceplate's alpha -->
       <div class="backlight" id="backlight"></div>
-
-      <!-- the original faceplate -->
       <div class="face" id="face"></div>
-
-      <!-- interactive reels: drag to lean on the tape -->
       <canvas class="reels" id="reels" width="960" height="322"
-              title="Drag the reels to lean on the tape — real-time flange"></canvas>
-
-      <!-- EXTREME heat over the cross -->
+              title="Drag the reels to lean on the tape for real-time flange"></canvas>
       <div class="extreme-glow" id="extremeGlow"></div>
 
-      <!-- filmstrip controls (all original assets, positions.rtf layout) -->
       <div class="strip knob" id="k-input"  data-param="input"  data-default="0.5" title="Input trim / drive"></div>
-      <div class="strip knob" id="k-age"    data-param="age"    data-default="0"   title="Age — time spent in the chosen environment"></div>
+      <div class="strip knob" id="k-age"    data-param="age"    data-default="0"   title="Age: time spent in the chosen environment"></div>
       <div class="strip"      id="shameRing"></div>
-      <div class="strip knob" id="k-shame"  data-param="shame"  data-default="0"   title="Shame — wow, flutter, drift, scrape. Double-click for EXTREME"></div>
+      <div class="strip knob" id="k-shame"  data-param="shame"  data-default="0"   title="Shame: wow, flutter, drift and scrape. Double-click for EXTREME"></div>
       <div class="strip knob" id="k-hiss"   data-param="hiss"   data-default="0"   title="Hiss"></div>
-      <div class="strip knob" id="k-blend"  data-param="blend"  data-default="1"   title="Blend — dry/wet"></div>
+      <div class="strip knob" id="k-blend"  data-param="blend"  data-default="1"   title="Blend: dry/wet"></div>
       <div class="strip knob" id="k-output" data-param="output" data-default="0.5" title="Output trim"></div>
 
       <div class="strip" id="vuL"></div>
       <div class="strip" id="vuR"></div>
 
-      <div class="strip click" id="env"    title="Storage environment — click to cycle, scroll to step"></div>
+      <div class="strip click" id="env"    title="Storage environment: click to cycle, scroll to step"></div>
       <div class="strip click" id="lamp"   title="Bypass"></div>
       <div class="strip click" id="lever"  title="Bypass lever"></div>
       <div class="strip click" id="tape"   title="Tape formulation: S-111 / A-456"></div>
@@ -47,21 +71,91 @@
     </div>
   </div>
 
-  <footer class="transport">
-    <select id="source">
-      <option value="audio/dust_and_keys.wav">Dust &amp; Keys — lo-fi groove</option>
-      <option value="audio/night_drive.wav">Night Drive — synthwave</option>
-      <option value="audio/drum_bus.wav">Drum Bus — drums only</option>
+  <!-- ====================== transport ====================== -->
+  <section class="transport">
+    <select id="source" aria-label="Audio source">
+      <option value="audio/dust_and_keys.wav">Dust &amp; Keys: lo-fi groove</option>
+      <option value="audio/night_drive.wav">Night Drive: synthwave</option>
+      <option value="audio/drum_bus.wav">Drum Bus: drums only</option>
       <option value="upload">Your own audio…</option>
     </select>
     <input type="file" id="fileInput" accept="audio/*" hidden>
     <button class="play" id="playBtn">▶ ROLL TAPE</button>
-    <a class="gh" href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener">GitHub ↗</a>
+    <button class="download" id="downloadBtn" hidden title="Render your upload through the machine, knobs as set, and download the WAV">⬇ DOWNLOAD MASTER</button>
+  </section>
+
+  <!-- ====================== the manual ====================== -->
+  <article class="manual">
+
+    <section class="card intro">
+      <h2>Reach out and touch tape</h2>
+      <p>The Kiss of Shame is an analog tape degradation processor; the full pathology of magnetic
+         tape: <b>drift, wow, flutter, scrape-flutter, hiss, print-through</b> and the slow violence of
+         time and storage. It originally debuted @ AES 2014. I didn't know the first thing about
+         starting a company so I of course blew through my runway and went bust. But it was revived by
+         another developer in 2023, launched open-source and has become somewhat of a freeware cult
+         classic. This page runs the real Rev&nbsp;2 signal path, straight from the code that's presently
+         in the GitHub repo, right in your browser. You can also download the plugin (AU/VST3) and run it
+         in your DAW on Mac, Windows and Linux.</p>
+      <p class="cta-row">
+        <a class="btn solid" href="https://github.com/erosmarcello/TheKissOfShame/releases" target="_blank" rel="noopener">⬇ DOWNLOAD THE PLUGIN</a>
+        <a class="btn" href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>View the Repo</a>
+        <a class="btn" href="https://v0-kiss-of-shame-case-study.vercel.app/" target="_blank" rel="noopener">Read the V1 Case Study</a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>The controls</h2>
+      <dl class="params">
+        <div><dt>INPUT TRIM</dt><dd>Drive into the tape path (±18&nbsp;dB). Push it and the dual odd/even-harmonic saturation leans in; this is where the warmth lives.</dd></div>
+        <div><dt>SHAME</dt><dd>The center knob. One macro driving drift, wow, flutter and scrape-flutter together: mild color at 9&nbsp;o’clock, seasick mangling at full. <b>Double-click the cross for EXTREME</b> and the engine runs past its design stops.</dd></div>
+        <div><dt>ENVIRONMENT</dt><dd>Where the reel was stored. <i>Studio Closet</i> (dry oxidation: dulling, dropouts, stray crackle), <i>Humid Cellar</i> (sticky-shed: drowned highs, slow swell, damp rumble), <i>Hot Locker</i> (heat warp: drifting pitch, sagging level, hard echoes), <i>Hurricane Sandy</i> (the flood reel: bursts, grit and survival). Click the LED window to cycle, scroll to step.</dd></div>
+        <div><dt>AGE</dt><dd>How long the reel suffered there. Environment picks the story, AGE sets the damage. At zero, the environment idles.</dd></div>
+        <div><dt>HISS</dt><dd>The noise floor of the medium, crossfade-looped so it never repeats. It scales with tape formulation.</dd></div>
+        <div><dt>TAPE: S-111 / A-456</dt><dd>Two formulations. <b>S-111</b>, the darker 1950s to 70s reference reel with richer even harmonics. <b>A-456</b>, the high-output/low-noise workhorse: brighter, tighter, with a quieter floor.</dd></div>
+        <div><dt>PRINT THROUGH</dt><dd>Adjacent tape wraps magnetizing each other: a soft, dulled echo breathing ~110&nbsp;ms behind the program. It's the classic “ghost” of worn masters.</dd></div>
+        <div><dt>BLEND</dt><dd>Dry/wet against the driven signal: the parallel-processing knob. Full right is all tape.</dd></div>
+        <div><dt>OUTPUT TRIM</dt><dd>Make-up gain (±18&nbsp;dB). The chain-link icons couple INPUT and OUTPUT inversely for level-matched driving.</dd></div>
+        <div><dt>THE REELS</dt><dd>They spin with playback and they’re instruments: <b>drag them vertically to lean on the tape</b> for real-time flange, released exactly where you leave it.</dd></div>
+        <div><dt>BYPASS</dt><dd>The lamp shows it, the lever throws it. It's click-free either way.</dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Tricks &amp; tips</h2>
+      <ul class="tips">
+        <li><b>EXTREME:</b> double-click the cross. All-buttons-in mode: 2.5× modulation depth, looser timing, scrape-flutter engaged. It's saved with your session in the plugin; no extra parameter, no menu.</li>
+        <li><b>Lean on the tape:</b> drag the reels mid-phrase and release for tape-stop-adjacent warbles and dub-style smears. Double-click the reels to let go cleanly.</li>
+        <li><b>Shift-drag any knob</b> for fine adjustment; double-click (except SHAME) snaps it home.</li>
+        <li><b>Fold the machine:</b> double-click the empty faceplate and the reels tuck away for small screens, exactly like the plugin’s collapsible UI.</li>
+        <li><b>AGE before ENVIRONMENT</b> sounds like nothing and that’s correct. Pick the room first, then dial the years.</li>
+        <li><b>Sandy past noon:</b> Hurricane Sandy holds its noise bursts back until AGE crosses 50%. The flood arrives all at once.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Where to put it</h2>
+      <div class="uses">
+        <div><h3>Single tracks</h3><p>Vocals: A-456, INPUT pushed slightly, SHAME 10-15%, BLEND ~60% and air turns to velvet. Keys &amp; guitars: S-111, SHAME 20-35% for that pawn-shop chorus nobody can name. Drums: drive INPUT hard, BLEND to taste.</p></div>
+        <div><h3>Drum &amp; aux busses</h3><p>The parallel move: BLEND 30-50%, INPUT hot, OUTPUT linked low. Studio Closet + AGE ~40% glues transients with oxide instead of a compressor. Print Through ON adds room-like density between hits.</p></div>
+        <div><h3>The mix buss</h3><p>Restraint: INPUT near noon, SHAME under 15%, BLEND 20-35%, environment Off or a hair of Closet. You should miss it when you bypass it, not hear it when it’s in.</p></div>
+        <div><h3>Mastering</h3><p>S-111 for color, A-456 for glue. INPUT at unity, SHAME ≤ 10%, HISS off or whisper, BLEND 15-25%, watch the IN/OUT meters match. Uploading here? Set it, then <b>⬇ DOWNLOAD MASTER</b> prints your file through the machine at full resolution.</p></div>
+        <div><h3>Sound design &amp; post</h3><p>This is where it goes feral: Hurricane Sandy, AGE 100%, EXTREME on, reels dragged by hand. Instant archival trauma, period-correct decay, transmissions from drowned decades.</p></div>
+      </div>
+    </section>
+
+  </article>
+
+  <!-- ====================== footer ====================== -->
+  <footer class="legal">
+    <a class="btn solid big" href="https://github.com/erosmarcello/TheKissOfShame/releases" target="_blank" rel="noopener">⬇ DOWNLOAD THE KISS OF SHAME</a>
+    <p>© 2014-2026 <a href="https://github.com/erosmarcello" target="_blank" rel="noopener">Eros Marcello</a> · Infernal Love.
+       Source code licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.en.html" target="_blank" rel="noopener">GNU General Public License v3.0</a>.</p>
+    <p class="credits">Founder &amp; Chief Product Architect: Eros Marcello · DSP: Brian Hansen · Original GUI: Yannick Bonnefoy ·
+       <a href="https://v0-kiss-of-shame-case-study.vercel.app/" target="_blank" rel="noopener">V1 Case Study</a> ·
+       <a href="https://github.com/erosmarcello/TheKissOfShame" target="_blank" rel="noopener">Repository</a></p>
   </footer>
 
-  <p class="footnote">The original 2014 interface, live in your browser — every graphic is the real faceplate asset.
-     AudioWorklet port of the Rev 2 signal path. Double-click the cross for <b>EXTREME</b>;
-     double-click the faceplate to fold the reels away. © Infernal Love.</p>
 </main>
 
 <script src="app.js"></script>

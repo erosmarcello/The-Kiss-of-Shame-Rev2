@@ -154,6 +154,7 @@ private:
     bool linkIOMode = false;
     bool constructionComplete = false;
     int priorBlockCount = 0;
+    float pulseLevel = 0.0f; // secondary metering: program level driving the control glints
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(KissOfShameAudioProcessorEditor)
 };

@@ -6,13 +6,17 @@
 // Rev 2 modernization), including Shame EXTREME.
 
 class KosProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
     const sr = sampleRate;
     this.p = {
       input: 0.5, shame: 0, hiss: 0, age: 0, blend: 1, output: 0.5,
       flange: 0, bypass: 0, tape: 0, print: 0, env: 0, extreme: 0,
     };
+    // Offline rendering (the download-your-master path) passes the full
+    // parameter snapshot up front, so the render opens already settled.
+    this.presetParams = options && options.processorOptions && options.processorOptions.params;
+    if (this.presetParams) Object.assign(this.p, this.presetParams);
 
     // saturation
     this.satPrior = [0, 0];
@@ -38,7 +42,8 @@ class KosProcessor extends AudioWorkletProcessor {
     // print-through
     this.printLen = Math.round(0.11 * sr);
     this.printBuf = [new Float32Array(this.printLen), new Float32Array(this.printLen)];
-    this.printPos = 0; this.printLP = [0, 0]; this.printAmt = 0;
+    this.printPos = 0; this.printLP = [0, 0];
+    this.printAmt = this.p.print > 0.5 ? 0.0158 : 0;
 
     // environment
     this.envLP = [0, 0]; this.envLPCoef = 1;
@@ -46,8 +51,10 @@ class KosProcessor extends AudioWorkletProcessor {
     this.crackleEnv = 0; this.cracklePrev = 0;
     this.burstPhase = 0; this.grainLP = 0; this.rumbleLP = 0;
 
-    // smoothed gains
-    this.bypassMix = 0; this.driveSm = 1; this.outSm = 1;
+    // smoothed gains (start settled when params were preset)
+    this.bypassMix = this.p.bypass > 0.5 ? 1 : 0;
+    this.driveSm = Math.pow(10, (this.p.input * 36 - 18) / 20);
+    this.outSm = Math.pow(10, (this.p.output * 36 - 18) / 20);
 
     // metering
     this.meterCount = 0; this.meterL = 0; this.meterR = 0;

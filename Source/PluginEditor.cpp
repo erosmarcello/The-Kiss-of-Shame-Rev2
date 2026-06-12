@@ -484,6 +484,22 @@ void KissOfShameAudioProcessorEditor::timerCallback()
     vuMeterL.updateImageWithValue(vuLevelL);
     vuMeterR.updateImageWithValue(vuLevelR);
 
+    // Secondary metering: a very light pulse on the cross and the parameter
+    // knobs while signal is actually being affected. Bypass extinguishes it
+    // along with everything else.
+    const float pulseTarget = bypassButton.getToggleState()
+        ? 0.0f
+        : jlimit(0.0f, 1.0f, (processor.getCurrentRMSL() + processor.getCurrentRMSR()) * 1.5f);
+
+    if (std::abs(pulseTarget - pulseLevel) > 0.002f || pulseLevel > 0.002f)
+    {
+        pulseLevel += (pulseTarget - pulseLevel) * 0.30f;
+
+        content.repaint(shameKnob.getBounds().expanded(16));
+        for (auto* k : { &inputSaturationKnob, &ageKnob, &hissKnob, &blendKnob, &outputKnob })
+            content.repaint(k->getBounds().expanded(10));
+    }
+
     // The light follows the program: backlight ember and the cross's halo.
     const float programGlow = jlimit(0.0f, 1.0f, 0.5f * (vuLevelL + vuLevelR));
     backlight.setAudioLevel(programGlow);
@@ -591,9 +607,34 @@ void KissOfShameAudioProcessorEditor::paintModernPanel(Graphics& g)
 
 void KissOfShameAudioProcessorEditor::paintContentOverChildren(Graphics& g)
 {
-    // Extreme mode in the heritage era: the Shame knob runs hot. (The modern
-    // knob paints its own heat.)
-    if (era == UIEra::heritage && processor.isShameExtreme())
+    if (era != UIEra::heritage)
+        return;
+
+    const bool extreme = processor.isShameExtreme();
+    const auto glowColour = extreme ? Colour::fromFloatRGBA(1.0f, 0.10f, 0.16f, 1.0f)
+                                    : Colour::fromFloatRGBA(1.0f, 0.216f, 0.384f, 1.0f);
+
+    // Secondary metering: the cross and the parameters carry a very light
+    // pulse with the program level — the lamp language for "signal is being
+    // affected." Bypass extinguishes it (pulseLevel decays to zero).
+    if (pulseLevel > 0.01f)
+    {
+        auto breathe = [&g, &glowColour](juce::Rectangle<float> b, float alpha)
+        {
+            const auto centre = b.getCentre();
+            ColourGradient glow(glowColour.withAlpha(alpha), centre.x, centre.y,
+                                glowColour.withAlpha(0.0f), centre.x, b.getY(), true);
+            g.setGradientFill(glow);
+            g.fillEllipse(b);
+        };
+
+        breathe(shameKnob.getBounds().toFloat().expanded(14.0f), jmin(0.20f, 0.22f * pulseLevel));
+        for (auto* k : { &inputSaturationKnob, &ageKnob, &hissKnob, &blendKnob, &outputKnob })
+            breathe(k->getBounds().toFloat().expanded(7.0f), jmin(0.10f, 0.12f * pulseLevel));
+    }
+
+    // Extreme mode: the Shame knob runs hot.
+    if (extreme)
     {
         const auto knobBounds = shameKnob.getBounds().toFloat().expanded(10.0f);
         const auto centre = knobBounds.getCentre();

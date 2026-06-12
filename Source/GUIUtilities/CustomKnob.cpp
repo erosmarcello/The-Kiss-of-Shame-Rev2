@@ -2,7 +2,9 @@
 
 CustomKnob::CustomKnob()
 {
-    setSliderStyle(Rotary);
+    // Vertical OR horizontal drag both turn the knob (the original circular
+    // gesture still works too) - and the web demo mirrors this exactly.
+    setSliderStyle(RotaryHorizontalVerticalDrag);
     setTextBoxStyle(NoTextBox, true, 0, 0);
     setRange(0.000, 1.000, 0.001);
     setValue(0.0);
