@@ -1,5 +1,5 @@
 # The Kiss of Shame – DSP Magnetic Tape Emulation
-
+<img src="https://v0-kiss-of-shame-case-study.vercel.app/images/complete-ui.png">
 The Kiss of Shame, debuted at the Audio Engineering Society Convention 2014 in Los Angeles, was a pioneering DAW plugin that leveraged commercial UX/UI design principles to shape its magnetic tape + circuitry emulation algorithms.
 
 To differentiate itself in the competitive pro-audio plugin market, The Kiss of Shame introduced groundbreaking features including an interactive, multi-touch-ready GUI and analog tape degradation simulation for distinctive audio effects.
