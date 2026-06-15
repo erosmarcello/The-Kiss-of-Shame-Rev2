@@ -1,0 +1,41 @@
+name: Patch Release
+
+# One-shot: promote an existing release from pre-release to full release
+# and rename it. Dispatch manually; delete this workflow afterwards.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag of the release to promote (e.g. v2.0.0-beta.1)"
+        required: true
+      new_name:
+        description: "New display name (e.g. The Kiss of Shame v2.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 20
+            });
+            const rel = releases.data.find(r => r.tag_name === '${{ github.event.inputs.tag }}');
+            if (!rel) throw new Error('Release not found for tag ${{ github.event.inputs.tag }}');
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: rel.id,
+              name: '${{ github.event.inputs.new_name }}',
+              prerelease: false
+            });
+            console.log(`Promoted release ${rel.id} — prerelease cleared, name updated.`);

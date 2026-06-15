@@ -61,7 +61,6 @@ jobs:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          prerelease: true
           files: TheKissOfShame-macOS.zip
           body: |
             **Analog tape desecration for your DAW.** Rev 2 rebuilds the engine from the ground up and brings back the original 2014 interface, reels and all. Every control finally does what it says.
@@ -114,7 +113,7 @@ jobs:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          prerelease: true
+          prerelease: false
           files: TheKissOfShame-Windows-VST3.zip
 
   linux:
@@ -145,5 +144,5 @@ jobs:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: The Kiss of Shame ${{ github.event.inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          prerelease: true
+          prerelease: false
           files: TheKissOfShame-Linux-VST3.zip
