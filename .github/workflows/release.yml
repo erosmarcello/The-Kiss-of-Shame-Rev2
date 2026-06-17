@@ -76,7 +76,7 @@ jobs:
             ### Install on macOS (Logic Pro and any AU or VST3 host)
             1. Download and unzip `TheKissOfShame-macOS.zip`.
             2. Copy `AU/The Kiss Of Shame.component` to `~/Library/Audio/Plug-Ins/Components/`.
-            3. Clear the quarantine flag (beta builds are ad hoc signed, not notarized):
+            3. Clear the quarantine flag (these builds are ad hoc signed, not notarized):
                ```sh
                xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/"The Kiss Of Shame.component"
                ```
