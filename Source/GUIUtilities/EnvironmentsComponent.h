@@ -5,17 +5,19 @@
 // The storage-environment selector, revitalized for Rev 2.
 //
 // Rev 1 UX was opaque: a small strip you blind-cycled with clicks. Now:
-//   - click opens a picker listing all six environments by name, each with
-//     a one-line sonic description — direct selection, no cycling
-//   - scroll-wheel steps prev/next (the old cycling, made deliberate)
+//   - click still cycles through the environments (the fast, tactile feel)
+//   - the chevron at the right edge (or a right-click) opens a list of all
+//     five environments by name, each with a one-line sonic description, so
+//     you can pick the one you want directly instead of hunting for it
+//   - scroll-wheel steps prev/next
 //   - hover affordance + tooltip so the strip reads as interactive
 //   - a thin pink underline shows the AGE intensity actually applied to the
-//     chosen environment, making the AGE <-> ENVIRONMENT coupling visible
+//     chosen environment, making the AGE and ENVIRONMENT coupling visible
 //
 // Still decoupled from the processor: clicks go out through
-// onEnvironmentChanged, display state comes in via setDisplayedEnvironment —
-// the parameter stays the single source of truth and host automation moves
-// the strip.
+// onEnvironmentChanged, display state comes in via setDisplayedEnvironment,
+// so the parameter stays the single source of truth and host automation
+// moves the strip.
 class EnvironmentsComponent : public ImageInteractor,
                               public SettableTooltipClient
 {
@@ -49,7 +51,7 @@ public:
         setMinMaxValues(0, 5);
         setDimensions(0, 0, 183, 32);
         setMouseCursor(MouseCursor::PointingHandCursor);
-        setTooltip("Storage environment - click to cycle, scroll to step. AGE sets how long the reel suffered there.");
+        setTooltip("Storage environment - click to cycle, click the arrow (or right-click) for the full list, scroll to step. AGE sets how long the reel suffered there.");
     }
 
     ~EnvironmentsComponent() override = default;
@@ -83,8 +85,14 @@ public:
 
     void mouseUp(const MouseEvent& event) override
     {
-        // The original interaction: click cycles the LED strip.
-        if (event.mouseWasClicked() && getLocalBounds().contains(event.getPosition()))
+        if (! (event.mouseWasClicked() && getLocalBounds().contains(event.getPosition())))
+            return;
+
+        // The right-edge chevron (or a right-click) opens the full list, so
+        // you can pick directly; everywhere else keeps the click-to-cycle feel.
+        if (event.mods.isPopupMenu() || event.getPosition().x >= getWidth() - caretZoneW)
+            showPicker();
+        else
             select((currentIndex + 1) % numEnvironments);
     }
 
@@ -98,7 +106,7 @@ public:
     }
 
     //==========================================================================
-    // The callout: all six environments, named and described, direct click.
+    // The callout: all five environments, named and described, direct click.
     // Public so the headless snapshot tool can render it for docs/review.
     class Picker : public Component
     {
@@ -280,7 +288,21 @@ public:
             g.drawRoundedRectangle(r.reduced(0.5f), 4.0f, 1.4f);
         }
 
-        drawAgeUnderline(g, r.reduced(10.0f, 0.0f));
+        // List affordance: a small pink chevron tucked against the right edge.
+        // Clicking it (or right-clicking the window) opens the full picker;
+        // it brightens on hover so the "there is a list here" reads at a glance.
+        {
+            const float cx = r.getRight() - 12.0f;
+            const float cy = r.getCentreY();
+            Path chevron;
+            chevron.startNewSubPath(cx - 4.0f, cy - 2.0f);
+            chevron.lineTo(cx, cy + 2.5f);
+            chevron.lineTo(cx + 4.0f, cy - 2.0f);
+            g.setColour(ModernTheme::accent.withAlpha(hovering ? 0.95f : 0.45f));
+            g.strokePath(chevron, PathStrokeType(1.6f, PathStrokeType::curved, PathStrokeType::rounded));
+        }
+
+        drawAgeUnderline(g, r.reduced(10.0f, 0.0f).withTrimmedRight(16.0f));
     }
 
 private:
@@ -304,6 +326,8 @@ private:
     }
 
     //==========================================================================
+    static constexpr int caretZoneW = 26; // right-edge hit zone that opens the list
+
     int currentIndex = 0;
     float ageAmount = 0.0f;
     bool hovering = false;

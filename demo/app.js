@@ -3,7 +3,14 @@
    driven as a filmstrip, laid out per positions.rtf. */
 "use strict";
 
-const ENVIRONMENTS = ["Off", "Studio Closet", "Humid Cellar", "Hot Locker", "Hurricane Sandy"];
+// names + one-line sonic descriptions, mirroring the plugin's picker
+const ENV_INFO = [
+  { name: "Off",             blurb: "Fresh reel. No storage damage." },
+  { name: "Studio Closet",   blurb: "Dry darkness. Dulling, light dropouts, stray crackle." },
+  { name: "Humid Cellar",    blurb: "Sticky-shed. Drowned highs, slow swell, damp rumble." },
+  { name: "Hot Locker",      blurb: "Heat warp. Drifting pitch, sagging level, hard print-through." },
+  { name: "Hurricane Sandy", blurb: "The flood reel. Bursts, grit and survival." },
+];
 
 const state = {
   input: 0.5, shame: 0, hiss: 0, age: 0, blend: 1, output: 0.5,
@@ -87,20 +94,93 @@ const vuL = strip("vuL", "08", 251, 518, 108, 108, 65);
 const vuR = strip("vuR", "10", 605, 518, 110, 108, 65);
 vuL.setFrame(0); vuR.setFrame(0);
 
-/* environment LED window: frames 0=header, 1=OFF, 2..5=environments */
+/* ===== storage environment: LED window (cycle) + direct-pick list ===== */
+// frames 0=header, 1=OFF, 2..5=environments
 const env = strip("env", "00", 388, 654, 183, 32, 6);
 function showEnv() {
   env.setFrame(state.env + 1);
-  env.el.title = "Storage environment: " + ENVIRONMENTS[state.env]
-               + " — click to cycle, scroll to step. AGE sets the damage.";
+  env.el.title = "Storage environment: " + ENV_INFO[state.env].name
+               + ". Click to cycle, click the arrow for the full list, scroll to step. AGE sets the damage.";
+  syncEnvMenu();
 }
-env.el.addEventListener("click", () => { setParam("env", (state.env + 1) % 5); showEnv(); });
+function selectEnv(i) {
+  setParam("env", ((i % 5) + 5) % 5);
+  showEnv();
+}
+
+// the rightmost slice of the window is the chevron that opens the list,
+// matching the plugin; the rest of the window keeps the click-to-cycle feel
+env.el.addEventListener("click", (e) => {
+  const rect = env.el.getBoundingClientRect();
+  if (e.clientX - rect.left >= rect.width * (1 - 26 / 183)) { openEnvMenu(); return; }
+  selectEnv(state.env + 1);
+});
+env.el.addEventListener("contextmenu", (e) => { e.preventDefault(); openEnvMenu(); });
 env.el.addEventListener("wheel", (e) => {
   e.preventDefault();
-  const step = e.deltaY > 0 ? 1 : 4; // +1 or -1 mod 5
-  setParam("env", (state.env + step) % 5);
-  showEnv();
+  selectEnv(state.env + (e.deltaY > 0 ? 1 : -1));
 }, { passive: false });
+
+/* the dropdown: every environment at once, named and described, like the
+   plugin's callout. Built once, positioned over the machine on open. */
+const envMenu = document.createElement("div");
+envMenu.className = "env-menu";
+envMenu.id = "envMenu";
+envMenu.hidden = true;
+envMenu.setAttribute("role", "listbox");
+envMenu.setAttribute("aria-label", "Storage environment");
+envMenu.innerHTML =
+  '<div class="env-menu-head">STORAGE ENVIRONMENT</div>' +
+  ENV_INFO.map((info, i) =>
+    '<button class="env-row" role="option" data-i="' + i + '">' +
+      '<span class="env-lamp"></span>' +
+      '<span class="env-text"><span class="env-name">' + info.name + '</span>' +
+      '<span class="env-blurb">' + info.blurb + '</span></span>' +
+    '</button>').join("") +
+  '<div class="env-menu-foot"><span class="env-foot-label"></span>' +
+  '<span class="env-age-track"><span class="env-age-fill"></span></span></div>';
+document.body.appendChild(envMenu);
+
+const envRows = Array.from(envMenu.querySelectorAll(".env-row"));
+const envFootLabel = envMenu.querySelector(".env-foot-label");
+const envAgeFill = envMenu.querySelector(".env-age-fill");
+envRows.forEach((row) =>
+  row.addEventListener("click", () => { selectEnv(parseInt(row.dataset.i, 10)); closeEnvMenu(); }));
+
+function syncEnvMenu() {
+  envRows.forEach((row) => row.classList.toggle("sel", parseInt(row.dataset.i, 10) === state.env));
+  envFootLabel.textContent = state.env > 0 ? "AGE = TIME SPENT HERE" : "AGE IDLES WHILE OFF";
+  envAgeFill.style.width = Math.max(3, (state.age || 0) * 100) + "%";
+  envMenu.classList.toggle("env-off", state.env === 0);
+}
+
+let envMenuOpen = false;
+function openEnvMenu() {
+  syncEnvMenu();
+  envMenu.hidden = false;
+  envMenu.classList.remove("show");
+  const rect = env.el.getBoundingClientRect();
+  const mw = envMenu.offsetWidth, mh = envMenu.offsetHeight;
+  let left = Math.max(8, Math.min(rect.left + rect.width / 2 - mw / 2, window.innerWidth - mw - 8));
+  let top = rect.top - mh - 10;                 // prefer opening up over the machine face
+  if (top < 8) top = rect.bottom + 10;          // not enough room up: drop down
+  envMenu.style.left = left + "px";
+  envMenu.style.top = top + "px";
+  requestAnimationFrame(() => envMenu.classList.add("show"));
+  envMenuOpen = true;
+}
+function closeEnvMenu() {
+  if (!envMenuOpen) return;
+  envMenuOpen = false;
+  envMenu.classList.remove("show");
+  setTimeout(() => { if (!envMenuOpen) envMenu.hidden = true; }, 170);
+}
+document.addEventListener("pointerdown", (e) => {
+  if (envMenuOpen && !envMenu.contains(e.target) && !env.el.contains(e.target)) closeEnvMenu();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeEnvMenu(); });
+window.addEventListener("scroll", closeEnvMenu, true);
+
 showEnv();
 
 /* bypass: the lamp (01) shows it, the lever (02) throws it */
@@ -221,7 +301,7 @@ function layout() {
   stage.style.transform = `scale(${s})`;
   holder.style.height = (state.collapsed ? 266 : 703) * s + "px";
 }
-window.addEventListener("resize", layout);
+window.addEventListener("resize", () => { layout(); closeEnvMenu(); });
 layout();
 
 /* ============================== transport ============================== */

@@ -221,3 +221,70 @@ body.bypassed .stage { --pulse: 0 !important; }
 
 /* github mark inside the "View the Repo" button */
 .gh-ico { width: 13px; height: 13px; vertical-align: -2px; margin-right: 6px; }
+
+/* ============ storage-environment: chevron + direct-pick list ============ */
+/* the chevron tucked against the right edge of the LED window */
+#env::after {
+  content: "";
+  position: absolute;
+  right: 9px; top: 50%;
+  width: 7px; height: 7px;
+  transform: translateY(-65%) rotate(45deg);
+  border-right: 1.6px solid var(--pink);
+  border-bottom: 1.6px solid var(--pink);
+  opacity: .5;
+  transition: opacity .15s;
+  pointer-events: none;
+}
+#env:hover::after { opacity: 1; }
+body.extreme #env::after { border-color: var(--hot); }
+
+.env-menu {
+  position: fixed;
+  z-index: 1000;
+  width: 320px; max-width: calc(100vw - 16px);
+  padding: 8px;
+  background: rgba(18,14,13,.94);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,55,98,.4);
+  border-radius: 14px;
+  box-shadow: 0 20px 54px rgba(0,0,0,.62), 0 0 0 1px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+  opacity: 0;
+  transform: translateY(6px) scale(.98);
+  transition: opacity .16s ease, transform .16s ease;
+}
+.env-menu.show { opacity: 1; transform: translateY(0) scale(1); }
+
+.env-menu-head {
+  font: 800 10px/1 inherit; letter-spacing: .2em;
+  color: #8a7f78; text-align: center; padding: 8px 0 10px;
+}
+
+.env-row {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left;
+  background: transparent; border: none; cursor: pointer;
+  padding: 9px 11px; border-radius: 9px;
+  color: #e6ded2; font: inherit;
+  transition: background .12s;
+}
+.env-row:hover { background: rgba(255,55,98,.1); }
+.env-lamp {
+  flex: none; width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,.18); transition: all .12s;
+}
+.env-row.sel .env-lamp { background: var(--pink); box-shadow: 0 0 9px rgba(255,55,98,.85); }
+.env-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.env-name { font: 800 12.5px/1.2 inherit; letter-spacing: .02em; color: #e8e8ea; }
+.env-row.sel .env-name { color: var(--pink); }
+.env-blurb { font-size: 10.5px; line-height: 1.35; color: #97897c; }
+
+.env-menu-foot { padding: 11px 11px 6px; }
+.env-foot-label { display: block; font: 800 9px/1 inherit; letter-spacing: .14em; color: #8a7f78; margin-bottom: 6px; }
+.env-age-track { display: block; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden; }
+.env-age-fill { display: block; height: 100%; border-radius: 2px; background: var(--pink); box-shadow: 0 0 8px rgba(255,55,98,.6); transition: width .15s; }
+.env-menu.env-off .env-age-fill { background: rgba(255,255,255,.22); box-shadow: none; }
+
+body.extreme .env-row.sel .env-lamp,
+body.extreme .env-age-fill { background: var(--hot); }
