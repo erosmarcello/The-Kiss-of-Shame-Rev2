@@ -51,6 +51,7 @@ class KosProcessor extends AudioWorkletProcessor {
     this.printLen = Math.round(0.11 * sr);
     this.printBuf = [new Float32Array(this.printLen), new Float32Array(this.printLen)];
     this.printPos = 0; this.printLP = [0, 0];
+    this.printLPCoef = Math.min(1, 5000 * 2 * Math.PI / sr); // ~5 kHz, mirrors the plugin
     this.printAmt = this.p.print > 0.5 ? 0.08 : 0;
 
     // environment
@@ -259,7 +260,7 @@ class KosProcessor extends AudioWorkletProcessor {
         // --- print-through: dulled post-echo
         const pb = this.printBuf[c];
         const echo = pb[this.printPos];
-        this.printLP[c] += 0.5 * (echo - this.printLP[c]);
+        this.printLP[c] += this.printLPCoef * (echo - this.printLP[c]);
         pb[this.printPos] = s;
         s += this.printAmt * this.printLP[c];
 

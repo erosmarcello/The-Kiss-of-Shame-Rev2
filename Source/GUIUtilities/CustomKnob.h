@@ -32,6 +32,7 @@ public:
     }
 
     void paint(Graphics& g) override;
+    void mouseDown(const MouseEvent& event) override;
     void mouseDoubleClick(const MouseEvent& event) override;
     void mouseEnter(const MouseEvent& event) override;
     void mouseExit(const MouseEvent& event) override;

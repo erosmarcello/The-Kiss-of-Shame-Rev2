@@ -65,11 +65,25 @@ public:
 
     void mouseDrag(const MouseEvent& event) override
     {
-        const float dragDist = (float) event.getDistanceFromDragStartY() / 100.0f;
+        // 200 px of vertical travel sweeps the full flange depth, matching the
+        // web demo; dragging down leans harder on the tape.
+        const float dragDist = (float) event.getDistanceFromDragStartY() / 200.0f;
         curFlangeDepth = jlimit(0.0f, 1.0f, setFlangeDepth + dragDist);
 
         if (onFlangeDepthChanged != nullptr)
             onFlangeDepthChanged(curFlangeDepth);
+    }
+
+    void mouseDoubleClick(const MouseEvent&) override
+    {
+        // Double-click the reels to let go of the tape cleanly (flange to
+        // zero), exactly like the web demo.
+        curFlangeDepth = 0.0f;
+        setFlangeDepth = 0.0f;
+
+        if (onFlangeGestureStart != nullptr) onFlangeGestureStart();
+        if (onFlangeDepthChanged != nullptr) onFlangeDepthChanged(0.0f);
+        if (onFlangeGestureEnd != nullptr)   onFlangeGestureEnd();
     }
 
     float getCurrentFlangeDepth() const { return curFlangeDepth; }

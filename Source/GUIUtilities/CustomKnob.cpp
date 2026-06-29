@@ -69,6 +69,15 @@ void CustomKnob::paint(Graphics& g)
     }
 }
 
+void CustomKnob::mouseDown(const MouseEvent& event)
+{
+    // Match the web demo's drag feel exactly: 180 px of combined vertical and
+    // horizontal travel sweeps the full range, and holding Shift quarters the
+    // speed for fine adjustment.
+    setMouseDragSensitivity(event.mods.isShiftDown() ? 720 : 180);
+    Slider::mouseDown(event);
+}
+
 void CustomKnob::mouseDoubleClick(const MouseEvent& event)
 {
     if (onDoubleClick != nullptr)

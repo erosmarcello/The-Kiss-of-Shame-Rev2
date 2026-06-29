@@ -65,6 +65,14 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
     ageKnob.setKnobDimensions(350, 455, 74, 72);
     content.addAndMakeVisible(ageKnob);
 
+    // Double-click a gain/character knob to snap it back to its default, like
+    // the web demo. (Shame's double-click is reserved for EXTREME.)
+    inputSaturationKnob.setDoubleClickReturnValue(true, 0.5);
+    ageKnob.setDoubleClickReturnValue(true, 0.0);
+    hissKnob.setDoubleClickReturnValue(true, 0.0);
+    blendKnob.setDoubleClickReturnValue(true, 1.0);
+    outputKnob.setDoubleClickReturnValue(true, 0.5);
+
     // The input/output link: invert-couples the two gain knobs.
     inputSaturationKnob.onValueChange = [this]
     {
