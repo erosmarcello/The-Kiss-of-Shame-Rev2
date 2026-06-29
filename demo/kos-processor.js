@@ -31,19 +31,27 @@ class KosProcessor extends AudioWorkletProcessor {
     this.sDepth = 0; this.sRate = 7; this.sPeriod = 0.5;
     this.scrapeDepth = 0; this.scrapeRate = 38;
 
-    // flange
-    this.flangeLen = Math.max(64, Math.round(2000 * sr / 44100));
+    // flange (reel-touch flanger): a short LFO-swept delay with feedback.
+    // The reel drag sets the intensity; wet mix, sweep depth, feedback and
+    // LFO rate all grow with it. At rest the stage is fully dry (transparent).
+    this.flangeLen = Math.max(256, Math.round(0.05 * sr)); // 50 ms line
     this.flangeBuf = [new Float32Array(this.flangeLen), new Float32Array(this.flangeLen)];
-    this.flangePos = 0; this.flangePlay = 0; this.flangeCur = 0;
+    this.flangePos = 0;
+    this.flangeLfo = 0;
+    this.flangeInt = this.p.flange;
+    this.flangeBase = 0.0008 * sr;   // 0.8 ms base delay
+    this.flangeSweep = 0.0045 * sr;  // up to 4.5 ms LFO sweep
+    this.flangeSmooth = 1 - Math.exp(-1 / (0.010 * sr)); // ~10 ms intensity glide
 
     // hiss: filtered noise bed
     this.hissLP = 0; this.hissHP = 0; this.hissPrev = 0;
 
-    // print-through
+    // print-through: a dulled post-echo ~110 ms behind the program. Audible
+    // but tape-soft (~ -22 dB) so the rarely-used button clearly does something.
     this.printLen = Math.round(0.11 * sr);
     this.printBuf = [new Float32Array(this.printLen), new Float32Array(this.printLen)];
     this.printPos = 0; this.printLP = [0, 0];
-    this.printAmt = this.p.print > 0.5 ? 0.0158 : 0;
+    this.printAmt = this.p.print > 0.5 ? 0.08 : 0;
 
     // environment
     this.envLP = [0, 0]; this.envLPCoef = 1;
@@ -133,9 +141,8 @@ class KosProcessor extends AudioWorkletProcessor {
     const driveTarget = Math.pow(10, (P.input * 36 - 18) / 20);
     const outTarget = Math.pow(10, (P.output * 36 - 18) / 20);
     const hissGain = P.hiss * 0.012 * (this.hissScale || 1);
-    const printTarget = P.print > 0.5 ? 0.0158 : 0;
+    const printTarget = P.print > 0.5 ? 0.08 : 0;
     const blend = P.blend;
-    const flangeTargetSamples = P.flange * 1000 * sr / 44100;
 
     // environment configuration (intensity = age)
     const env = P.env | 0, age = P.age;
@@ -169,9 +176,18 @@ class KosProcessor extends AudioWorkletProcessor {
         modPos += this.scrapeDepth * Math.sin(this.scrapePhase);
       }
 
-      // flange depth smoothing (original time constant)
-      const fdiff = flangeTargetSamples - this.flangeCur;
-      this.flangeCur += Math.abs(fdiff) < 0.01 ? fdiff : fdiff * 0.001 * (44100 / sr);
+      // flange: smoothed intensity drives an LFO-swept delay with feedback
+      this.flangeInt += (P.flange - this.flangeInt) * this.flangeSmooth;
+      const fInt = this.flangeInt;
+      const fWet = 0.5 * Math.min(1, fInt * 4);   // dry at rest, fades in fast
+      const fFb = 0.65 * fInt;                     // resonance grows with lean
+      const fLfoRate = 0.25 + 0.35 * fInt;
+      this.flangeLfo += fLfoRate / sr;
+      if (this.flangeLfo >= 1) this.flangeLfo -= 1;
+      const fLfoVal = 0.5 * (1 - Math.cos(2 * Math.PI * this.flangeLfo));
+      let fRead = this.flangePos - (this.flangeBase + this.flangeSweep * fInt * fLfoVal);
+      fRead = ((fRead % this.flangeLen) + this.flangeLen) % this.flangeLen;
+      const f0 = fRead | 0, f1 = (f0 + 1) % this.flangeLen, ff = fRead - f0;
 
       const dip = dipDepth > 0 ? this.dipValue() : 1;
 
@@ -207,10 +223,6 @@ class KosProcessor extends AudioWorkletProcessor {
       const readPos = ((this.shamePos + modPos) % this.shameLen + this.shameLen) % this.shameLen;
       const r0 = readPos | 0, r1 = (r0 + 1) % this.shameLen, rf = readPos - r0;
 
-      let fPlay = this.flangePos - this.flangeCur;
-      fPlay = ((fPlay % this.flangeLen) + this.flangeLen) % this.flangeLen;
-      const f0 = fPlay | 0, f1 = (f0 + 1) % this.flangeLen, ff = fPlay - f0;
-
       for (let c = 0; c < ch; c++) {
         const dry = inp && inp[c] ? inp[c][i] : 0;
         let s = dry * this.driveSm;
@@ -225,10 +237,11 @@ class KosProcessor extends AudioWorkletProcessor {
         this.satPrior[c] = this.rolloffCoef * s + (1 - this.rolloffCoef) * this.satPrior[c];
         s = this.satPrior[c];
 
-        // --- flange (reel touch)
-        const fb = this.flangeBuf[c];
-        fb[this.flangePos] = s;
-        s = 0.5 * s + 0.5 * (fb[f0] * (1 - ff) + fb[f1] * ff);
+        // --- flange (reel touch): LFO-swept delay + feedback, dry at rest
+        const fbuf = this.flangeBuf[c];
+        const fdel = fbuf[f0] * (1 - ff) + fbuf[f1] * ff;
+        fbuf[this.flangePos] = s + fFb * fdel;
+        s = (1 - fWet) * s + fWet * fdel;
 
         // --- environment
         this.envLP[c] += this.envLPCoef * (s - this.envLP[c]);

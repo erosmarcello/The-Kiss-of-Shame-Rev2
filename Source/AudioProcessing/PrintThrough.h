@@ -8,8 +8,9 @@
 //  under the program.
 //
 //  Implemented as a single fixed tap (~110 ms) read through a one-pole
-//  lowpass, mixed at roughly -36 dB with a smoothed on/off level so the
-//  button never clicks.
+//  lowpass, mixed at roughly -22 dB with a smoothed on/off level so the
+//  button never clicks. Audible but tape-soft: the rarely-used button now
+//  clearly does something. Mirrored by the web demo worklet.
 //
 
 #pragma once
@@ -95,6 +96,6 @@ private:
     std::vector<float> lpState;
 
     bool enabled = false;
-    const float echoGain = 0.0158f; // ~ -36 dB
+    const float echoGain = 0.08f; // ~ -22 dB
     SmoothedValue<float> level;
 };

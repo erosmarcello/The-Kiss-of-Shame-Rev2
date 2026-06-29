@@ -3,10 +3,11 @@
 //  KissOfShame
 //
 //  Created by Brian Hansen on 9/9/14.
-//  Rev 2: sample-rate aware buffer and depth scaling.
-//
-//  The reel-touch flange: dragging the animated reels modulates the depth,
-//  reading behind the write head through a smoothed variable delay.
+//  Rev 2: rebuilt as an actual flanger. Dragging the animated reels leans on
+//  the tape; the drag depth (0..1) drives a short LFO-swept delay with
+//  feedback. At rest the stage is fully dry (transparent). As you lean in, the
+//  wet mix, sweep depth, feedback resonance and LFO rate all grow, giving the
+//  classic sweeping comb. Mirrored sample-for-sample by the web demo worklet.
 //
 
 #pragma once
@@ -21,15 +22,14 @@ public:
     void prepare(double newSampleRate, int numChannels)
     {
         sampleRate = newSampleRate;
-        srScale = (float) (sampleRate / 44100.0);
+        const float sr = (float) sampleRate;
 
-        bufferLength = jmax(64, (int) std::lround(2000.0 * srScale));
+        bufferLength = jmax(256, (int) std::lround(0.05 * sampleRate)); // 50 ms line
         flangeSampleBuffer.setSize(jmax(1, numChannels), bufferLength);
 
-        // The original smoothing moved 0.1% of the remaining distance per
-        // sample at 44.1k; keep that time constant at any rate.
-        smoothingCoeff = jlimit(0.00001f, 1.0f, 0.001f / srScale);
-        snapThreshold = 0.01f * srScale;
+        baseDelay  = 0.0008f * sr;  // 0.8 ms base delay
+        sweepDepth = 0.0045f * sr;  // up to 4.5 ms LFO sweep
+        intSmooth  = 1.0f - std::exp(-1.0f / (0.010f * sr)); // ~10 ms intensity glide
 
         reset();
     }
@@ -37,63 +37,70 @@ public:
     void reset()
     {
         flangeSampleBuffer.clear();
-        playPosition = 0.0f;
-        curPos = 0;
-        curDepth = 0.0f;
+        writePos = 0;
+        lfoPhase = 0.0f;
+        curIntensity = targetIntensity;
     }
 
-    // Input 0..1; the original mapped this across 1000 samples of delay.
+    // Input 0..1: how hard the reels are leaned on.
     void setDepth(float depth01)
     {
-        targetDepth = depth01 * 1000.0f * srScale;
+        targetIntensity = jlimit(0.0f, 1.0f, depth01);
     }
 
     void process(AudioSampleBuffer& sampleBuffer, int numChannels)
     {
         numChannels = jmin(numChannels, flangeSampleBuffer.getNumChannels());
+        const float sr = (float) sampleRate;
+        const int L = bufferLength;
 
         for (int i = 0; i < sampleBuffer.getNumSamples(); ++i)
         {
-            for (int channel = 0; channel < numChannels; ++channel)
-                flangeSampleBuffer.getWritePointer(channel)[curPos] = sampleBuffer.getReadPointer(channel)[i];
+            curIntensity += (targetIntensity - curIntensity) * intSmooth;
+            const float fi  = curIntensity;
+            const float wet = 0.5f * jmin(1.0f, fi * 4.0f); // dry at rest, fades in fast
+            const float fb  = 0.65f * fi;                   // resonance grows with lean
+            const float lfoRate = 0.25f + 0.35f * fi;
 
-            const float frac = playPosition - (float) (int) playPosition;
-            const int prX = (int) playPosition;
-            const int nxtX = (prX + 1) % bufferLength;
+            lfoPhase += lfoRate / sr;
+            if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
+            const float lfo = 0.5f * (1.0f - std::cos(MathConstants<float>::twoPi * lfoPhase));
+
+            float readPos = (float) writePos - (baseDelay + sweepDepth * fi * lfo);
+            while (readPos >= (float) L) readPos -= (float) L;
+            while (readPos < 0.0f)       readPos += (float) L;
+
+            const int i0 = (int) readPos;
+            const int i1 = (i0 + 1) % L;
+            const float frac = readPos - (float) i0;
 
             for (int channel = 0; channel < numChannels; ++channel)
             {
-                float* out = sampleBuffer.getWritePointer(channel);
-                const float* delayed = flangeSampleBuffer.getReadPointer(channel);
-                out[i] = 0.5f * out[i] + 0.5f * (delayed[prX] * (1.0f - frac) + delayed[nxtX] * frac);
+                float* samples = sampleBuffer.getWritePointer(channel);
+                float* line    = flangeSampleBuffer.getWritePointer(channel);
+
+                const float delayed = line[i0] * (1.0f - frac) + line[i1] * frac;
+                const float in = samples[i];
+                line[writePos] = in + fb * delayed;            // feedback into the line
+                samples[i] = (1.0f - wet) * in + wet * delayed; // mix (dry when wet == 0)
             }
 
-            if (std::fabs(targetDepth - curDepth) < snapThreshold)
-                curDepth = targetDepth;
-            else
-                curDepth += (targetDepth - curDepth) * smoothingCoeff;
-
-            playPosition = (float) curPos - curDepth;
-
-            while (playPosition >= (float) bufferLength) playPosition -= (float) bufferLength;
-            while (playPosition < 0.0f)                  playPosition += (float) bufferLength;
-
-            curPos = (curPos + 1) % bufferLength;
+            writePos = (writePos + 1) % L;
         }
     }
 
 private:
     double sampleRate = 44100.0;
-    float srScale = 1.0f;
 
     AudioSampleBuffer flangeSampleBuffer;
-    int bufferLength = 2000;
+    int bufferLength = 2205;
+    int writePos = 0;
 
-    float playPosition = 0.0f;
-    int curPos = 0;
+    float baseDelay = 35.0f;
+    float sweepDepth = 198.0f;
+    float intSmooth = 0.004f;
 
-    float curDepth = 0.0f;
-    float targetDepth = 0.0f;
-    float smoothingCoeff = 0.001f;
-    float snapThreshold = 0.01f;
+    float lfoPhase = 0.0f;
+    float curIntensity = 0.0f;
+    float targetIntensity = 0.0f;
 };
