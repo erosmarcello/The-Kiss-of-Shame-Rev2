@@ -4,7 +4,7 @@ The Kiss of Shame, debuted at the Audio Engineering Society Convention 2014 in L
 
 To differentiate itself in the competitive pro-audio plugin market, The Kiss of Shame introduced groundbreaking features including an interactive, multi-touch-ready GUI and analog tape degradation simulation for distinctive audio effects.
 
-The Kiss of Shame was never formally released. I open sourced the code and another developer who revived sunsetted / deprecioated plugins. 
+The Kiss of Shame was never formally released. I open sourced the code, and in 2024 [Matthijs Hollemans](https://github.com/hollance) — who makes a habit of reviving sunsetted and deprecated plugins — brought it back to a working build and released it into the open, drawing renewed attention to a project that had been quiet for a decade. Rev 2 is built on that.
 
 > **Rev 2 is in active development.** The plug-in now builds and passes audio
 > with JUCE 8 (CMake), with all parameters functional — including the storage
@@ -92,6 +92,12 @@ Original developers:
 - [Brian Hansen](https://brianhansen.sonimmersion.com/) — DSP Engineering / Algorithm Development
 
 - [Yannick Bonnefoy](https://nanopsy.tv/) — GUI
+
+Revival:
+
+- [Matthijs Hollemans](https://github.com/hollance) — Revival & open-source release (2024). Brought the sunsetted
+  code back to a working build, shepherded it into the open, and drew renewed attention to the plugin — the
+  foundation Rev 2 is built on.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
