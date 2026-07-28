@@ -63,7 +63,7 @@ jobs:
           prerelease: true
           files: TheKissOfShame-macOS.zip
           body: |
-            **Analog tape desecration for your DAW.** Rev 2 rebuilds the engine from the ground up and brings back the original 2014 interface, reels and all. Every control finally does what it says.
+            **Analog tape degradation for your DAW.** Rev 2 rebuilds the engine from the ground up and brings back the original 2014 interface, reels and all. Every control finally does what it says.
 
             ### Highlights
             - The original interface, restored from the original art

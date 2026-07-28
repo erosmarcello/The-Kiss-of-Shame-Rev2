@@ -4,7 +4,7 @@
 //
 //  Created by Brian Hansen on 9/9/14.
 //  Rev 2: sample-rate aware, cleared buffers, single wavetable, and the
-//  Extreme mode — the "all-buttons-in" of the Shame knob.
+//  Extreme mode: the "all-buttons-in" of the Shame knob.
 //
 //  Wow/flutter/drift via a modulated playback position over a circular
 //  buffer. The knob's three-segment macro mapping is the original 2014
@@ -147,7 +147,7 @@ private:
         if (tablePhase >= (float) tableSize)
         {
             // Each cycle picks a new random rate deviation, scaled by the
-            // periodicity — the stochastic heart of the wow/flutter.
+            // periodicity; the stochastic heart of the wow/flutter.
             rateFluctuation = (random.nextFloat() * 2.0f - 1.0f) * rate * randPeriodicity;
             tablePhase -= (float) tableSize;
         }

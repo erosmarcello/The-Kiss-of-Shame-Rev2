@@ -1,4 +1,4 @@
-// The Kiss of Shame — web demo DSP.
+// The Kiss of Shame: web demo DSP.
 // A faithful AudioWorklet port of the Rev 2 signal graph:
 //   input drive -> [saturation -> flange -> environment -> hiss -> shame
 //   -> print-through] -> blend -> output

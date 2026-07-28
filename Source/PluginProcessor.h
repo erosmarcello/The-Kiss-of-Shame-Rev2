@@ -42,7 +42,7 @@ public:
     //==========================================================================
     AudioProcessorValueTreeState apvts;
 
-    // Shame Extreme — the all-buttons-in mode entered by double-clicking the
+    // Shame Extreme: the all-buttons-in mode entered by double-clicking the
     // Shame knob. Deliberately a recallable state property, NOT a host
     // parameter: the parameter set stays exactly as it always was.
     bool isShameExtreme() const noexcept                 { return shameExtreme.load(); }

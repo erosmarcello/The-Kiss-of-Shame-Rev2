@@ -6,14 +6,14 @@
 //  implemented only Hurricane Sandy; the other selector positions were
 //  silent. Rev 2 gives every position a distinct sonic fingerprint, all
 //  composed from the same primitives (dips, grains, loops, biquads) and
-//  all driven by the AGE knob as the single intensity input — the
+//  all driven by the AGE knob as the single intensity input; the
 //  "environmental storytelling" model: pick where the reel was stored,
 //  then dial in how long it suffered there.
 //
-//      Studio Closet   — mild oxidation: dulling, light dropouts, rare crackle
-//      Humid Cellar    — sticky-shed: heavy muffling, slow undulation, damp rumble
-//      Hot Locker      — heat warp: slow wow, sagging level, exaggerated print-through
-//      Hurricane Sandy — the flood-damaged reel (original 2014 recipe, debugged)
+//      Studio Closet   : mild oxidation: dulling, light dropouts, rare crackle
+//      Humid Cellar    : sticky-shed: heavy muffling, slow undulation, damp rumble
+//      Hot Locker      : heat warp: slow wow, sagging level, exaggerated print-through
+//      Hurricane Sandy : the flood-damaged reel (original 2014 recipe, debugged)
 //
 
 #pragma once
@@ -291,7 +291,7 @@ private:
 };
 
 //==============================================================================
-// The flood-damaged reel: the original 2014 recipe — periodic noise bursts,
+// The flood-damaged reel: the original 2014 recipe: periodic noise bursts,
 // pink-noise granulation, amplitude dips, low-frequency grain bed and a
 // sweeping lowpass. Rev 2 fixes the uninitialized burst level (it was only
 // assigned above half intensity) and feeds it embedded, rate-matched audio.

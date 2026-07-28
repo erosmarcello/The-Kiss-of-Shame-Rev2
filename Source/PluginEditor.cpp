@@ -93,7 +93,7 @@ KissOfShameAudioProcessorEditor::KissOfShameAudioProcessorEditor(KissOfShameAudi
     content.addAndMakeVisible(bypassButton);
 
     // The lost lever: 02.png, specified at (232, 502) in positions.rtf but
-    // never wired into Rev 1. Two frames — lever up (signal flowing) and
+    // never wired into Rev 1. Two frames: lever up (signal flowing) and
     // lever thrown (bypassed). The lamp shows the state; this throws it.
     const auto leverImage = getImage(BinaryData::_02_png, BinaryData::_02_pngSize);
     bypassLever.setTopLeftPosition(232, 502);
@@ -615,7 +615,7 @@ void KissOfShameAudioProcessorEditor::paintContentOverChildren(Graphics& g)
                                     : Colour::fromFloatRGBA(1.0f, 0.216f, 0.384f, 1.0f);
 
     // Secondary metering: the cross and the parameters carry a very light
-    // pulse with the program level — the lamp language for "signal is being
+    // pulse with the program level; the lamp language for "signal is being
     // affected." Bypass extinguishes it (pulseLevel decays to zero).
     if (pulseLevel > 0.01f)
     {

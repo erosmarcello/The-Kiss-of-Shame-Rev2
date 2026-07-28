@@ -1,4 +1,4 @@
-/* The Kiss of Shame — Rev 2 demo.
+/* The Kiss of Shame: Rev 2 demo.
    The original 2014 interface: every control is the real faceplate asset,
    driven as a filmstrip, laid out per positions.rtf. */
 "use strict";
@@ -92,7 +92,7 @@ const env = strip("env", "00", 388, 654, 183, 32, 6);
 function showEnv() {
   env.setFrame(state.env + 1);
   env.el.title = "Storage environment: " + ENVIRONMENTS[state.env]
-               + " — click to cycle, scroll to step. AGE sets the damage.";
+               + ". Click to cycle, scroll to step. AGE sets the damage.";
 }
 env.el.addEventListener("click", () => { setParam("env", (state.env + 1) % 5); showEnv(); });
 env.el.addEventListener("wheel", (e) => {

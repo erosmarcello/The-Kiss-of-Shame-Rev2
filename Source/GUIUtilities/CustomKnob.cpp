@@ -50,7 +50,7 @@ void CustomKnob::paint(Graphics& g)
     if (era == UIEra::modern)
     {
         // The SHAME knob: the gear-edged wheel carrying the glowing
-        // inverted cross — the shelved design's centrepiece. Other knobs
+        // inverted cross; the shelved design's centrepiece. Other knobs
         // are glossy balls ringed with LED dots.
         if (modernCross)
             ModernTheme::drawShameGear(g, getLocalBounds().toFloat(), (float) normalizedValue,

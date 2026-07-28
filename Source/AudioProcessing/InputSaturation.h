@@ -48,9 +48,9 @@ public:
         drive = Decibels::decibelsToGain(normalized * 36.0f - 18.0f);
     }
 
-    // S-111: the original 1950s-70s formulation — darker, more even-harmonic
+    // S-111: the original 1950s-70s formulation: darker, more even-harmonic
     // colour (the untouched 2014 constants).
-    // A-456: high-output/low-noise mastering formulation — brighter rolloff,
+    // A-456: high-output/low-noise mastering formulation: brighter rolloff,
     // tighter and cleaner saturation.
     void setTapeType(bool useA456)
     {

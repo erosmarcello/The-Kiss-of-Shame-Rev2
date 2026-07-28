@@ -3,7 +3,7 @@
 #include "Theme.h"
 
 // The glow behind the machine. Heritage: the original solid pink wash.
-// Modern: a living ember — it breathes on its own slow cycle, swells with
+// Modern: a living ember; it breathes on its own slow cycle, swells with
 // the program audio, and runs hot and fast in Extreme mode.
 class BacklightComponent : public Component, private Timer
 {

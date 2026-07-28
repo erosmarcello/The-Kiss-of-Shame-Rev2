@@ -1,7 +1,7 @@
 #pragma once
 
 // Stable parameter IDs for the AudioProcessorValueTreeState.
-// Rev 2 preserves the Rev 1 parameter set exactly — the controls that always
+// Rev 2 preserves the Rev 1 parameter set exactly; the controls that always
 // existed on the faceplate, now actually functional and automatable.
 // Deliberately nothing new: Shame Extreme and the UI era are state
 // *properties*, not parameters (see PluginProcessor).

@@ -2,7 +2,7 @@
 //
 // Boots the real processor (no host, no GUI), drives a sine through the
 // default signal path, and verifies the contract Rev 1 never met: audio in,
-// audio out — finite, non-silent, and state that round-trips.
+// audio out: finite, non-silent, and state that round-trips.
 
 #include <PluginProcessor.h>
 #include <cmath>

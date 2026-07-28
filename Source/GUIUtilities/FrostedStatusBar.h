@@ -4,7 +4,7 @@
 
 // The frosted status spine. Fills the band between the reel bay and the
 // control deck (modern era, reels shown) with the machine's live state:
-// transport, tape formulation, environment, age, print-through and shame —
+// transport, tape formulation, environment, age, print-through and shame;
 // readable at a glance from across the room, glowing on frosted glass.
 //
 // Mouse-transparent: it informs, the controls below act.

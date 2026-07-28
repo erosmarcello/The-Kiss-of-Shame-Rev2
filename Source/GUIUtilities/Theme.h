@@ -4,14 +4,14 @@
 //
 //  The two faces of the machine:
 //
-//    HERITAGE — the original 2014 skeuomorphic identity: Yannick Bonnefoy's
+//    HERITAGE: the original 2014 skeuomorphic identity: Yannick Bonnefoy's
 //    filmstrip knobs, bitmap VU meters, the photographed faceplate. Untouched.
 //
-//    MODERN — the shelved 2015 redesign, finally built: scratched gunmetal
+//    MODERN: the shelved 2015 redesign, finally built: scratched gunmetal
 //    faceplate, glossy ball knobs ringed with pink LED dots, the gear-edged
 //    Shame knob carrying the glowing inverted cross, dark VU glass with the
 //    cross watermark, silver large-format reels on wine-dark NAB hubs.
-//    Fully vector, drawn with light — renders pixel-perfect at any scale.
+//    Fully vector, drawn with light; renders pixel-perfect at any scale.
 //
 //  Components never decide colors themselves; they branch on UIEra and call
 //  these helpers, so each era stays coherent everywhere.
@@ -79,7 +79,7 @@ namespace ModernTheme
     }
 
     //==========================================================================
-    // Heavy weathering: scratches, scuffs, stains and rust kisses — the
+    // Heavy weathering: scratches, scuffs, stains and rust kisses; the
     // faceplate has lived. Cached 512px tile, deterministic.
     inline const Image& grungeTile()
     {
@@ -181,7 +181,7 @@ namespace ModernTheme
     }
 
     //==========================================================================
-    // The dotted LED arc — the design's signature. Dots light progressively
+    // The dotted LED arc: the design's signature. Dots light progressively
     // with the value and bloom like small lamps.
     inline void drawDottedArc(Graphics& g, Point<float> centre, float radius, float value01,
                               int count, float dotRadius, Colour lit, bool allLitWhenIdle = false)
@@ -366,7 +366,7 @@ namespace ModernTheme
             g.drawEllipse(centre.x - faceR, centre.y - faceR, faceR * 2, faceR * 2, 2.0f);
         }
 
-        // THE CROSS — glowing, rotating with the value
+        // THE CROSS: glowing, rotating with the value
         {
             const float ch = faceR * 1.18f, cw = ch * 0.62f;
             juce::Rectangle<float> markBounds(centre.x - cw * 0.5f, centre.y - ch * 0.52f, cw, ch);
@@ -398,7 +398,7 @@ namespace ModernTheme
 
     //==========================================================================
     // VU: dark smoked glass, the cross watermarked behind the scale, pink
-    // needle sweep — the shelved design's meter, lamp riding the level.
+    // needle sweep: the shelved design's meter, lamp riding the level.
     inline void drawVUMeter(Graphics& g, juce::Rectangle<float> bounds, float value01, float glow01 = 0.0f)
     {
         auto r = bounds.reduced(2.0f);

@@ -1,4 +1,4 @@
-// Renders the editor to PNG files, one per era — headless screenshot tool
+// Renders the editor to PNG files, one per era: headless screenshot tool
 // for docs, visual review, and eyeballing GUI regressions.
 //
 //   KissOfShameSnapshot <outputDirectory> [--extreme]
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 
         auto snapshot = editor->createComponentSnapshot(editor->getLocalBounds());
 
-        // The CallOutBox needs a native peer, which headless snapshots lack —
+        // The CallOutBox needs a native peer, which headless snapshots lack;
         // composite the real Picker component at its callout position instead.
         if (picker)
         {

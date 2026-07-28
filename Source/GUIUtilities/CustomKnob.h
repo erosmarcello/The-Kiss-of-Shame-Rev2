@@ -3,7 +3,7 @@
 #include "Theme.h"
 
 // Rotary knob with two faces: heritage filmstrip frames, or the vector
-// modern rendering. A double-click hook is exposed — the Shame knob uses it
+// modern rendering. A double-click hook is exposed; the Shame knob uses it
 // to enter Extreme mode.
 class CustomKnob : public Slider
 {

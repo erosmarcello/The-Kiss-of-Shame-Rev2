@@ -6,8 +6,8 @@
 //  skeuomorphism (2014) and the modern flat/dimensional macOS look (NOW).
 //
 //  Deliberately not a normal toggle. It's recessed into the faceplate like
-//  the protected switches on real tape machines: press it IN and hold —
-//  the plunger sinks, arms with a pink ring — then release to flip eras.
+//  the protected switches on real tape machines: press it IN and hold;
+//  the plunger sinks, arms with a pink ring, then release to flip eras.
 //  Tap it casually and it just springs back. You have to mean it.
 //
 
@@ -118,7 +118,7 @@ public:
             g.drawEllipse(thumb, 1.0f);
         }
 
-        // pressing dims the plunger — it's going INTO the panel
+        // pressing dims the plunger; it's going INTO the panel
         if (depress > 0.01f)
         {
             g.setColour(Colours::black.withAlpha(0.35f * depress));

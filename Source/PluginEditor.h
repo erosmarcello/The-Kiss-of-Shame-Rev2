@@ -63,7 +63,7 @@ private:
     ScaledContent content;
 
     //==========================================================================
-    // The decade change: the outgoing era lifts off the panel — eased
+    // The decade change: the outgoing era lifts off the panel, eased
     // crossfade with a slight zoom while the signature pink flares and
     // recedes, like a lamp marking the jump. ~220ms, 60fps, fully eased;
     // fast enough to feel instant, soft enough to feel expensive.

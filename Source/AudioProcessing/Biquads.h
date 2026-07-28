@@ -11,7 +11,7 @@
  Butterworth (LP and HP), Linkwitz-Riley, Shelves, Peak.
 
  Rev 2: sample-rate aware via setSampleRate(), and the long-standing
- "Need to restrict some of the filter coefficients" note is resolved —
+ "Need to restrict some of the filter coefficients" note is resolved;
  every design now clamps fc into (10 Hz, 0.49 * fs) before computing
  coefficients, which keeps tan()/sin() in their stable regions.
  */

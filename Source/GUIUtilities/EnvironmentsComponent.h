@@ -6,14 +6,14 @@
 //
 // Rev 1 UX was opaque: a small strip you blind-cycled with clicks. Now:
 //   - click opens a picker listing all six environments by name, each with
-//     a one-line sonic description — direct selection, no cycling
+//     a one-line sonic description: direct selection, no cycling
 //   - scroll-wheel steps prev/next (the old cycling, made deliberate)
 //   - hover affordance + tooltip so the strip reads as interactive
 //   - a thin pink underline shows the AGE intensity actually applied to the
 //     chosen environment, making the AGE <-> ENVIRONMENT coupling visible
 //
 // Still decoupled from the processor: clicks go out through
-// onEnvironmentChanged, display state comes in via setDisplayedEnvironment —
+// onEnvironmentChanged, display state comes in via setDisplayedEnvironment;
 // the parameter stays the single source of truth and host automation moves
 // the strip.
 class EnvironmentsComponent : public ImageInteractor,
@@ -240,7 +240,7 @@ public:
     {
         if (getEra() == UIEra::modern)
         {
-            // The shelved-design strip: glowing pink "< ENVIRONMENT >" —
+            // The shelved-design strip: glowing pink "< ENVIRONMENT >";
             // arrows step, the name shows when a storage is engaged.
             auto r = getLocalBounds().toFloat();
             const bool active = currentIndex > 0;

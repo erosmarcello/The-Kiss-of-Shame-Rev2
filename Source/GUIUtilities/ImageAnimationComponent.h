@@ -208,11 +208,11 @@ private:
             ModernTheme::drawScrew(g, { head.getRight() - 6.0f, head.getBottom() - 6.0f }, 2.2f, 2.4f);
         }
 
-        // supply reel runs full, take-up lean — a transport mid-spool
+        // supply reel runs full, take-up lean: a transport mid-spool
         ModernTheme::drawReel(g, leftHub, radius, angle, 0.85f);
         ModernTheme::drawReel(g, rightHub, radius, -angle, 0.48f);
 
-        // drifting sheen across each flange — light moving on machined metal
+        // drifting sheen across each flange: light moving on machined metal
         for (const auto& hub : { leftHub, rightHub })
         {
             Graphics::ScopedSaveState save(g);
@@ -228,7 +228,7 @@ private:
             g.fillRect(hub.x - faceR, hub.y - faceR, faceR * 2, faceR * 1.1f);
         }
 
-        // pink ember rising from the deck below — the machine is alive,
+        // pink ember rising from the deck below; the machine is alive,
         // breathing slowly even at rest
         const float breath = 0.5f + 0.5f * std::sin(shimmerPhase * 0.5f);
         ColourGradient ember(ModernTheme::accent.withAlpha((hovering ? 0.13f : 0.07f) + 0.05f * breath),
@@ -251,7 +251,7 @@ private:
         if (spinning)
         {
             // The increment/threshold gate slows the reels while they're
-            // being touched — preserved from the original update() logic.
+            // being touched; preserved from the original update() logic.
             if (curIncrement == 0.0f)
             {
                 if (! animationImage.isNull())

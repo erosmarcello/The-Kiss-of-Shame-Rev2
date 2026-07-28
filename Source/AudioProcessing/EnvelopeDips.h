@@ -3,7 +3,7 @@
 #include "../shameConfig.h"
 
 // Looping random amplitude-dip envelope: each pass through the domain
-// scatters a fresh set of dip points — the slow "breathing" of worn tape.
+// scatters a fresh set of dip points; the slow "breathing" of worn tape.
 // Rev 2: sample-rate aware, juce::Random instead of srand/rand, preallocated
 // point storage so the per-loop recalculation never allocates on the audio
 // thread, and interpolation guards against degenerate spans.

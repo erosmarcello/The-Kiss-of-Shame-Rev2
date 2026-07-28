@@ -5,7 +5,7 @@
     \brief STK noise generator.
 
     Originally by Perry R. Cook and Gary P. Scavone, 1995--2014.
-    Rev 2: backed by juce::Random — no more global srand()/rand() state
+    Rev 2: backed by juce::Random; no more global srand()/rand() state
     shared across plugin instances.
 */
 /***************************************************/
